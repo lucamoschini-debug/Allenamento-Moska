@@ -111,38 +111,57 @@ class TestSuggest(unittest.TestCase):
 
     def test_progress_after_two_sessions_at_top(self):
         ws = [wk("2026-09-01T10:00:00Z", UPPER_B), wk("2026-09-05T10:00:00Z", UPPER_B)]
-        self.assertTrue(self.sug("Upper B", "Vertical Traction", ws)[0].startswith("27,5 kg"))
-        self.assertEqual(self.sug("Upper B", "Pullover con manubrio", ws)[0], "10 kg")
+        self.assertTrue(self.sug("Upper B", "Trazione verticale (macchina)", ws)[0].startswith("27,5 kg"))
+        self.assertEqual(self.sug("Upper B", "Pullover (Manubrio)", ws)[0], "10 kg")
 
     def test_one_session_at_top_keeps_load(self):
-        load, goal, _, _ = self.sug("Upper B", "Vertical Traction", [wk("2026-09-01T10:00:00Z", UPPER_B)])
+        load, goal, _, _ = self.sug("Upper B", "Trazione verticale (macchina)", [wk("2026-09-01T10:00:00Z", UPPER_B)])
         self.assertEqual(load, "25 kg")
         self.assertIn("già al tetto", goal)
 
     def test_below_top_same_load_more_reps(self):
-        load, goal, last, _ = self.sug("Lower A", "Leg Press", [wk("2026-09-01T10:00:00Z", LOWER_A)])
+        load, goal, last, _ = self.sug("Lower A", "Leg Press Orizzontale (Macchina)", [wk("2026-09-01T10:00:00Z", LOWER_A)])
         self.assertEqual(load, "40 kg")
         self.assertIn("+1-2 rip", goal)
         self.assertIn("4x10 a 40 kg", last)
 
     def test_step_up_top_is_10(self):
         ws = [wk("2026-09-01T10:00:00Z", LOWER_B), wk("2026-09-06T10:00:00Z", LOWER_B)]
-        self.assertEqual(self.sug("Lower B", "Step-up su panca", ws)[0], "4 kg per mano")
+        self.assertEqual(self.sug("Lower B", "Step Up Manubrio", ws)[0], "4 kg per mano")
 
     def test_no_history(self):
-        self.assertEqual(self.sug("Upper C", "Face pull", [])[0], morning.TARATURA)
-        self.assertIn("partenza 5 kg", self.sug("Upper C", "Shoulder Press (macchina)", [])[0])
-        self.assertEqual(self.sug("Lower A", "Panca Romana", [])[0], "corpo libero")
+        self.assertEqual(self.sug("Upper C", "Face Pull", [])[0], morning.TARATURA)
+        self.assertIn("partenza 5 kg", self.sug("Upper C", "Lento in Avanti Seduto (Macchina)", [])[0])
+        self.assertEqual(self.sug("Lower A", "Back Extension (Iperestensione)", [])[0], "corpo libero")
 
     def test_deload_minus_10_percent(self):
         ws = [wk("2026-10-20T10:00:00Z", UPPER_B), wk("2026-10-22T10:00:00Z", UPPER_B)]
-        load, goal, _, _ = self.sug("Upper B", "Vertical Traction", ws, today=D(2026, 10, 27))
+        load, goal, _, _ = self.sug("Upper B", "Trazione verticale (macchina)", ws, today=D(2026, 10, 27))
         self.assertEqual(load, "22,5 kg")  # 25*0.9=22.5, nessuna progressione
         self.assertIn("RPE 6", goal)
 
     def test_after_cycle_no_progression(self):
         ws = [wk("2026-10-20T10:00:00Z", UPPER_B), wk("2026-10-22T10:00:00Z", UPPER_B)]
-        self.assertEqual(self.sug("Upper B", "Vertical Traction", ws, today=D(2026, 11, 3))[0], "25 kg")
+        self.assertEqual(self.sug("Upper B", "Trazione verticale (macchina)", ws, today=D(2026, 11, 3))[0], "25 kg")
+
+    def test_new_scheda_start_load_wins_once(self):
+        cfg = ex_cfg("Upper B", "Pullover (Manubrio)")
+        vdt = morning.dt.datetime.fromisoformat("2026-10-11T23:20:00+02:00")
+        old = [wk("2026-10-04T10:00:00Z", UPPER_B), wk("2026-10-09T10:00:00Z", UPPER_B)]
+        hist = morning.history_for(cfg, morning.classify(old, SCHEDA), SCHEDA)
+        self.assertEqual(morning.suggest(cfg, hist, "normal", 0.9, vdt)[0], "12 kg")  # Excel, non 10
+        new = old + [wk("2026-10-15T10:00:00Z", UPPER_B)]
+        hist = morning.history_for(cfg, morning.classify(new, SCHEDA), SCHEDA)
+        self.assertEqual(morning.suggest(cfg, hist, "normal", 0.9, vdt)[0], "10 kg")  # poi la regola
+
+    def test_plates_unit(self):
+        self.assertEqual(morning.fmt_loads([15, 15, 15], "kg di dischi"), "15 kg di dischi (7,5 per lato)")
+
+    def test_bodyweight_at_top(self):
+        cfg = ex_cfg("Lower A", "Back Extension (Iperestensione)")
+        ws = [wk("2026-09-01T10:00:00Z", [("Back Extension (Iperestensione)", [s(None, 12)] * 3)])]
+        hist = morning.history_for(cfg, morning.classify(ws, SCHEDA), SCHEDA)
+        self.assertIn("zavorra", morning.suggest(cfg, hist, "normal", 0.9)[1])
 
     def test_round_step(self):
         self.assertEqual(morning.deload(17.5, 2.5, 0.9), 15)
@@ -158,30 +177,30 @@ class TestMessage(unittest.TestCase):
         m = self.msg([wk("2026-10-10T12:00:00Z", LOWER_B)], D(2026, 10, 11))
         self.assertIn("Oggi riposo consigliato", m)
         self.assertIn("Domani: Upper A", m)
+        self.assertIn("Core o Mobilità e cervicale, se hai tempo.", m)
 
     def test_training_message_and_core(self):
         m = self.msg([wk("2026-10-10T12:00:00Z", LOWER_B)], D(2026, 10, 12))
-        self.assertIn("Oggi: Upper A (65-75 min)", m)
-        self.assertIn("Core: Core corto", m)
+        self.assertIn("Oggi: Upper A (circa 68-72 min)", m)
         self.assertLess(len(m), 3500)
 
-    def test_walks(self):
+    def test_no_walks_no_core_on_training_days(self):
         m = self.msg([wk("2026-10-12T12:00:00Z", UPPER_A)], D(2026, 10, 14))
-        self.assertIn("Camminata: 8 km alle 18:30", m)
-        m = self.msg([wk("2026-11-01T12:00:00Z", UPPER_A)], D(2026, 11, 3))
-        self.assertIn("nessuna camminata in piano", m)
-        self.assertIn("serve la nuova scheda", m)
-        m = self.msg([wk("2026-10-12T12:00:00Z", UPPER_A)], D(2026, 10, 13))
         self.assertNotIn("Camminata", m)
+        self.assertNotIn("Core", m)
+
+    def test_cycle_end(self):
+        m = self.msg([wk("2026-11-01T12:00:00Z", UPPER_A)], D(2026, 11, 3))
+        self.assertIn("serve la nuova scheda", m)
 
     def test_deload_note(self):
         m = self.msg([wk("2026-10-26T12:00:00Z", UPPER_A)], D(2026, 10, 28))
         self.assertIn("Settimana di scarico", m)
 
-    def test_upper_c_notes(self):
+    def test_upper_c_new_exercises(self):
         m = self.msg([wk("2026-09-01T10:00:00Z", UPPER_B)], D(2026, 9, 2))
         self.assertIn("Oggi: Upper C", m)
-        self.assertIn("dimmi il nome in Hevy", m)
+        self.assertIn("Nuovi esercizi (senza storico): Lento in Avanti Seduto (Macchina)", m)
 
     def test_unrecognized_listed(self):
         m = self.msg([wk("2026-09-01T10:00:00Z", UPPER_C)], D(2026, 9, 3))

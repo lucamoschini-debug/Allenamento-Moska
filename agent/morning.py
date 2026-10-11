@@ -241,7 +241,7 @@ def working_sets(sets):
 
 
 def history_for(exercise, classified, scheda):
-    """Ultime esecuzioni (più recente per prima) dell'esercizio: [(data, serie di lavoro)].
+    """Ultime esecuzioni (più recente per prima): [(data, serie di lavoro, inizio)].
     Si usano solo gli hevy_titles dell'esercizio (i legacy servono solo al
     riconoscimento della seduta)."""
     titles = set(norm(t) for t in exercise.get("hevy_titles", []))
@@ -259,7 +259,8 @@ def history_for(exercise, classified, scheda):
             sets = group_per_leg(sets)
         ws = working_sets(sets)
         if ws:
-            hist.append((to_rome(w["start_time"]).date(), ws))
+            started = to_rome(w["start_time"])
+            hist.append((started.date(), ws, started))
     return hist
 
 
@@ -292,7 +293,11 @@ def fmt_loads(loads, unit):
         txt = fmt_num(loads[0])
     else:
         txt = "/".join(fmt_num(l) for l in loads)
-    return txt + (" kg per mano" if unit == "kg per mano" else " kg")
+    if unit == "kg per mano":
+        return txt + " kg per mano"
+    if unit == "kg di dischi":
+        return txt + " kg di dischi (%s per lato)" % "/".join(fmt_num(l / 2) for l in sorted(set(loads), key=loads.index))
+    return txt + " kg"
 
 
 def fmt_last(day, ws, per_leg):
@@ -328,8 +333,28 @@ def deload(load, step, factor):
     return max(new, 0)
 
 
-def suggest(exercise, history, ph, factor):
-    """Restituisce (testo carico, testo obiettivo, ultima volta | None, nuovo esercizio?)"""
+def start_loads(exercise):
+    """Carico di partenza della scheda come lista per serie, o None se non numerico."""
+    n_sets = exercise["sets"]
+    start = exercise.get("start_load")
+    if isinstance(start, list):
+        loads = [float(x) for x in start[:n_sets]]
+        while len(loads) < n_sets:
+            loads.append(loads[-1])
+        return loads
+    if isinstance(start, (int, float)):
+        return [float(start)] * n_sets
+    if start == "corpo libero":
+        return [0.0] * n_sets
+    return None
+
+
+def suggest(exercise, history, ph, factor, version_dt=None):
+    """Restituisce (testo carico, testo obiettivo, ultima volta | None, nuovo esercizio?)
+
+    Se l'ultima esecuzione è precedente alla versione della scheda e la scheda
+    ha un carico di partenza numerico, vale quello (prima seduta della nuova
+    scheda); dalla seduta successiva vale la regola di progressione."""
     n_sets = exercise["sets"]
     step = exercise.get("step_kg")
     unit = exercise.get("unit", "kg totali")
@@ -337,14 +362,8 @@ def suggest(exercise, history, ph, factor):
     per_leg = exercise.get("per_leg", False)
 
     if not history:
-        start = exercise.get("start_load")
-        if isinstance(start, list):
-            start = [float(x) for x in start[:n_sets]]
-        elif isinstance(start, (int, float)):
-            start = [float(start)] * n_sets
-        elif start == "corpo libero":
-            start = [0.0] * n_sets
-        else:
+        start = start_loads(exercise)
+        if start is None:
             return TARATURA, "", None, True
         if ph == "deload":
             start = [deload(l, step, factor) for l in start]
@@ -352,11 +371,18 @@ def suggest(exercise, history, ph, factor):
             return "corpo libero", "", None, True
         return ("partenza " + fmt_loads(start, unit) + ", poi tara a RPE 7-8"), "", None, True
 
-    last_day, last_ws = history[0]
+    last_day, last_ws, last_start = history[0]
     loads = [_w(s) for s in last_ws][:n_sets]
     while len(loads) < n_sets:
         loads.append(loads[-1])
     last_txt = fmt_last(last_day, last_ws, per_leg)
+
+    start = start_loads(exercise)
+    if version_dt is not None and last_start < version_dt and start is not None and any(start):
+        if ph == "deload":
+            start = [deload(l, step, factor) for l in start]
+            return fmt_loads(start, unit), "partenza scheda, scarico, RPE 6", last_txt, False
+        return fmt_loads(start, unit), "partenza della scheda nuova", last_txt, False
 
     if ph == "deload":
         loads = [deload(l, step, factor) for l in loads]
@@ -372,6 +398,8 @@ def suggest(exercise, history, ph, factor):
             return fmt_loads(loads, unit), "+%s kg: 2 sedute al tetto" % fmt_num(step), last_txt, False
         return fmt_loads(loads, unit), "al tetto, nessun gradino: mantieni", last_txt, False
     if top_now:
+        if not step:
+            return fmt_loads(loads, unit), "al tetto: +1-2 rip o zavorra leggera", last_txt, False
         return fmt_loads(loads, unit), "stesso carico, già al tetto: se si ripete +1 gradino", last_txt, False
     return fmt_loads(loads, unit), "stesso carico, +1-2 rip per serie fino a %d" % rmax, last_txt, False
 
@@ -403,16 +431,6 @@ def plan_day(classified, scheda, today):
     return info
 
 
-def walk_line(scheda, day):
-    wk = scheda["walks"]
-    d = wk["days"].get(day.isoformat())
-    if d:
-        return "Camminata: %s km alle %s, %s (%s)" % (fmt_num(d["km"]), d["time"], d["kind"], wk["note"])
-    if day > dt.date.fromisoformat(wk["end"]):
-        return "Camminata: " + wk["after_end_text"]
-    return None
-
-
 def unrecognized(classified, scheda, today, days=14):
     known = known_titles(scheda)
     seen = []
@@ -428,11 +446,12 @@ def unrecognized(classified, scheda, today, days=14):
 def session_block(name, classified, scheda, today, ph):
     s = scheda["sessions"][name]
     factor = scheda["cycle"].get("deload_factor", 0.9)
+    version_dt = dt.datetime.fromisoformat(scheda["version_datetime"]) if scheda.get("version_datetime") else None
     lines = []
     new_ex, no_title = [], []
     for ex in s["exercises"]:
         hist = history_for(ex, classified, scheda)
-        load, goal, last, is_new = suggest(ex, hist, ph, factor)
+        load, goal, last, is_new = suggest(ex, hist, ph, factor, version_dt)
         reps = "%d" % ex["rep_min"] if ex["rep_min"] == ex["rep_max"] else "%d-%d" % (ex["rep_min"], ex["rep_max"])
         if ex.get("per_leg"):
             reps += " per gamba"
@@ -457,7 +476,6 @@ def build_message(classified, scheda, today):
     out = ["Buongiorno Luca — " + date_txt]
     notes = []
     gn = scheda["general_notes"]
-    core = scheda["core"]
 
     if ph == "deload":
         notes.append(scheda["cycle"]["deload_note"])
@@ -477,22 +495,14 @@ def build_message(classified, scheda, today):
                 out.append("Prossima seduta: %s, dopo 1-2 giorni di riposo." % plan["next"])
             else:
                 out.append("Prossima seduta: %s (%s)" % (plan["next"], scheda["sessions"][plan["next"]]["duration"]))
-        if plan["mode"] == "rest":
-            out.append("Core: " + core["full_rest_day"])
-        wl = walk_line(scheda, today)
-        if wl:
-            out.append(wl)
+        if plan["mode"] == "rest" and scheda.get("rest_day_line"):
+            out.append(scheda["rest_day_line"])
     else:
         name = plan["session"]
         s = scheda["sessions"][name]
         out.append("Oggi: %s (%s)" % (name, s["duration"]))
         lines, new_ex, no_title = session_block(name, classified, scheda, today, ph)
         out.extend(lines)
-        if s.get("core"):
-            out.append("Core: " + core["short"])
-        wl = walk_line(scheda, today)
-        if wl:
-            out.append(wl)
         if new_ex:
             notes.append("Nuovi esercizi (senza storico): " + ", ".join(new_ex) + ".")
         if no_title:
