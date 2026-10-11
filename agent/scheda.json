@@ -1,0 +1,106 @@
+{
+  "version": "v8",
+  "version_id": "20261011-0205",
+  "timezone": "Europe/Rome",
+  "rotation": ["Upper A", "Lower A", "Upper B", "Upper C", "Lower B"],
+  "rest_after": "Lower B",
+  "ignore_titles": ["Camminata"],
+  "cycle": {
+    "deload_start": "2026-10-26",
+    "deload_end": "2026-11-01",
+    "deload_factor": 0.9,
+    "deload_note": "Settimana di scarico (26/10-01/11): carichi -10% oppure una serie in meno, RPE 6. Mai alzare i carichi per compensare serie in meno.",
+    "end_date": "2026-11-01",
+    "end_note": "Ciclo concluso: serve la nuova scheda. Carichi mantenuti, nessuna progressione."
+  },
+  "walks": {
+    "plan": "Cammino, fase 1",
+    "start": "2026-10-14",
+    "end": "2026-11-01",
+    "after_end_text": "nessuna camminata in piano",
+    "days": {
+      "2026-10-14": {"km": 8, "time": "18:30", "kind": "facile"},
+      "2026-10-18": {"km": 8, "time": "09:00", "kind": "in salita"},
+      "2026-10-21": {"km": 9, "time": "18:30", "kind": "facile"},
+      "2026-10-25": {"km": 9, "time": "09:00", "kind": "in salita"},
+      "2026-10-28": {"km": 10, "time": "18:30", "kind": "facile"},
+      "2026-11-01": {"km": 10, "time": "09:00", "kind": "in salita"}
+    },
+    "note": "km da confermare: possono differire dal piano completo"
+  },
+  "core": {
+    "short": "Core corto (20-25 min) a fine seduta, solo isometrico",
+    "full_rest_day": "Core completo opzionale oggi (solo isometrico)"
+  },
+  "general_notes": {
+    "upper": "Spalla: se da' fastidio usa la variante a macchina o salta l'esercizio.",
+    "lower": "Schiena: carichi controllati, niente flessione del busto sotto carico.",
+    "always": "Dolore acuto o notturno: consulta un fisioterapista."
+  },
+  "sessions": {
+    "Upper A": {
+      "duration": "65-75 min",
+      "core": true,
+      "legacy_titles": ["Pushdown Tricipiti con Corda"],
+      "exercises": [
+        {"name": "Chest Press (macchina)", "hevy_titles": ["Chest Press (Macchina)"], "sets": 4, "rep_min": 10, "rep_max": 12, "start_load": 17.5, "step_kg": 2.5, "unit": "kg totali", "notes": ""},
+        {"name": "Panca inclinata 40° (manubri)", "hevy_titles": ["Panca Inclinata (Manubrio)"], "sets": 3, "rep_min": 10, "rep_max": 12, "start_load": 7, "step_kg": 1, "unit": "kg per mano", "notes": ""},
+        {"name": "Chest Fly", "hevy_titles": ["Croci (Macchina)"], "sets": 3, "rep_min": 12, "rep_max": 15, "start_load": 7.5, "step_kg": 2.5, "unit": "kg totali", "notes": ""},
+        {"name": "Spinte in basso con asta", "hevy_titles": ["Pushdown Tricipiti"], "sets": 4, "rep_min": 10, "rep_max": 12, "start_load": 10, "step_kg": 2.5, "unit": "kg totali", "notes": ""},
+        {"name": "Deltoid Machine", "hevy_titles": ["Alzate Laterali (Macchina)"], "sets": 3, "rep_min": 12, "rep_max": 15, "start_load": 12.5, "step_kg": 2.5, "unit": "kg totali", "notes": ""}
+      ]
+    },
+    "Lower A": {
+      "duration": "60-75 min",
+      "core": true,
+      "legacy_titles": ["Calf Raise in Piedi (Manubrio)"],
+      "exercises": [
+        {"name": "Leg Press", "hevy_titles": ["Leg Press Orizzontale (Macchina)"], "sets": 4, "rep_min": 10, "rep_max": 12, "start_load": [50, 50, 50, 60], "step_kg": 5, "unit": "kg totali", "notes": ""},
+        {"name": "Leg Extension", "hevy_titles": ["Leg Extension (Macchina)"], "sets": 3, "rep_min": 12, "rep_max": 15, "start_load": [17.5, 20, 20, 20], "step_kg": 2.5, "unit": "kg totali", "notes": ""},
+        {"name": "Leg Curl", "hevy_titles": ["Leg Curl Seduto (Macchina)"], "sets": 3, "rep_min": 12, "rep_max": 15, "start_load": [15, 15, 17.5, 20], "step_kg": 2.5, "unit": "kg totali", "notes": ""},
+        {"name": "Panca Romana", "hevy_titles": ["Back Extension (Iperestensione)"], "sets": 3, "rep_min": 12, "rep_max": 12, "start_load": "corpo libero", "step_kg": null, "unit": "kg totali", "notes": ""},
+        {"name": "Seated Calf", "hevy_titles": ["Calf Raise Seduto"], "sets": 3, "rep_min": 12, "rep_max": 15, "start_load": "da definire", "step_kg": null, "unit": "kg totali", "notes": ""}
+      ]
+    },
+    "Upper B": {
+      "duration": "80-95 min",
+      "core": false,
+      "legacy_titles": ["Rematore T Bar", "Concentration Curl", "Reverse Fly", "Croci Inverse Deltoide Posteriore (Macchina)"],
+      "exercises": [
+        {"name": "Vertical Traction", "hevy_titles": ["Trazione verticale (macchina)"], "sets": 4, "rep_min": 10, "rep_max": 12, "start_load": 32.5, "step_kg": 2.5, "unit": "kg totali", "notes": ""},
+        {"name": "Seated Row", "hevy_titles": ["Rematore Seduto (Macchina)"], "sets": 3, "rep_min": 10, "rep_max": 12, "start_load": 15, "step_kg": 2.5, "unit": "kg totali", "notes": ""},
+        {"name": "Seated Cable Row, barra larga", "hevy_titles": ["Rematore al Cavo da Seduto - Presa Larga"], "sets": 3, "rep_min": 10, "rep_max": 12, "start_load": 32.5, "step_kg": 2.5, "unit": "kg totali", "notes": ""},
+        {"name": "Pullover con manubrio", "hevy_titles": ["Pullover (Manubrio)"], "sets": 3, "rep_min": 10, "rep_max": 12, "start_load": 12, "step_kg": 1, "unit": "kg totali", "notes": ""},
+        {"name": "Bicep Curl (manubri)", "hevy_titles": ["Curl Bicipiti (Manubrio)"], "sets": 3, "rep_min": 10, "rep_max": 12, "start_load": 8, "step_kg": 1, "unit": "kg per mano", "notes": ""},
+        {"name": "Hammer Curl al cavo", "hevy_titles": ["Bicipiti Martello (Cavo)"], "sets": 3, "rep_min": 10, "rep_max": 12, "start_load": 10, "step_kg": 2.5, "unit": "kg totali", "notes": ""}
+      ]
+    },
+    "Upper C": {
+      "duration": "60-70 min",
+      "core": false,
+      "legacy_titles": [],
+      "exercises": [
+        {"name": "Shoulder Press (macchina)", "hevy_titles": [], "sets": 4, "rep_min": 10, "rep_max": 12, "start_load": 5, "step_kg": 2.5, "unit": "kg totali", "notes": ""},
+        {"name": "Chest Press inclinata (macchina)", "hevy_titles": [], "sets": 3, "rep_min": 10, "rep_max": 12, "start_load": "da definire", "step_kg": 2.5, "unit": "kg totali", "notes": ""},
+        {"name": "Croci ai cavi o pec deck", "hevy_titles": [], "sets": 3, "rep_min": 12, "rep_max": 15, "start_load": "da definire", "step_kg": 2.5, "unit": "kg totali", "notes": ""},
+        {"name": "Tirata verticale presa neutra / rematore con appoggio petto", "hevy_titles": [], "sets": 3, "rep_min": 10, "rep_max": 12, "start_load": "da definire", "step_kg": 2.5, "unit": "kg totali", "notes": ""},
+        {"name": "Deltoid Machine", "hevy_titles": ["Alzate Laterali (Macchina)"], "sets": 3, "rep_min": 12, "rep_max": 15, "start_load": 12.5, "step_kg": 2.5, "unit": "kg totali", "notes": ""},
+        {"name": "Face pull", "hevy_titles": [], "sets": 3, "rep_min": 12, "rep_max": 15, "start_load": "da definire", "step_kg": 2.5, "unit": "kg totali", "notes": ""}
+      ]
+    },
+    "Lower B": {
+      "duration": "70-75 min",
+      "core": false,
+      "legacy_titles": [],
+      "exercises": [
+        {"name": "Stacco rumeno con manubri (leggero)", "hevy_titles": ["Stacco da Terra Rumeno (Manubrio)"], "sets": 3, "rep_min": 10, "rep_max": 12, "start_load": 8, "step_kg": 1, "unit": "kg per mano", "notes": ""},
+        {"name": "Hip Thrust (macchina)", "hevy_titles": ["Hip Thrust (macchina)"], "sets": 3, "rep_min": 10, "rep_max": 12, "start_load": 35, "step_kg": 5, "unit": "kg totali", "notes": "solo macchina"},
+        {"name": "Leg Curl sdraiato", "hevy_titles": ["Leg Curl Sdraiato (Macchina)"], "sets": 3, "rep_min": 12, "rep_max": 15, "start_load": 10, "step_kg": 2.5, "unit": "kg totali", "notes": ""},
+        {"name": "Step-up su panca", "hevy_titles": ["Step Up Manubrio"], "sets": 3, "rep_min": 10, "rep_max": 10, "start_load": 5, "step_kg": 1, "unit": "kg per mano", "per_leg": true, "notes": "10 per gamba"},
+        {"name": "Abductor", "hevy_titles": ["Abduzione Anche (Macchina)"], "sets": 3, "rep_min": 15, "rep_max": 15, "start_load": 20, "step_kg": 2.5, "unit": "kg totali", "notes": ""},
+        {"name": "Adductor", "hevy_titles": ["Adduzione Anche (Macchina)"], "sets": 3, "rep_min": 15, "rep_max": 15, "start_load": 20, "step_kg": 2.5, "unit": "kg totali", "notes": ""},
+        {"name": "Seated Calf", "hevy_titles": ["Calf Raise Seduto"], "sets": 3, "rep_min": 12, "rep_max": 15, "start_load": "corpo libero", "step_kg": null, "unit": "kg totali", "notes": ""}
+      ]
+    }
+  }
+}

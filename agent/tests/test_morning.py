@@ -1,0 +1,214 @@
+"""Test con dati inventati: python -m unittest discover -s agent/tests"""
+import datetime as dt
+import json
+import os
+import sys
+import unittest
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.dirname(HERE))
+import morning  # noqa: E402
+
+D = dt.date
+
+
+def s(w, r, t="normal"):
+    return {"type": t, "weight_kg": w, "reps": r}
+
+
+def wk(start, exercises, title="x"):
+    return {"title": title, "start_time": start, "exercises": [{"title": t, "sets": ss} for t, ss in exercises]}
+
+
+SCHEDA = morning.load_scheda()
+
+
+def ex_cfg(session, name):
+    return next(e for e in SCHEDA["sessions"][session]["exercises"] if e["name"] == name)
+
+
+UPPER_A = [("Chest Press (Macchina)", [s(20, 12)] * 4), ("Croci (Macchina)", [s(5, 12)] * 3)]
+LOWER_A = [("Leg Press Orizzontale (Macchina)", [s(40, 10)] * 4), ("Leg Extension (Macchina)", [s(10, 12)] * 3)]
+UPPER_B = [("Trazione verticale (macchina)", [s(25, 12)] * 4), ("Pullover (Manubrio)", [s(9, 12)] * 3)]
+UPPER_C = [("Alzate Laterali (Macchina)", [s(10, 12)] * 3), ("Macchina Spalle Ignota", [s(5, 10)] * 4)]
+LOWER_B = [("Hip Thrust (macchina)", [s(30, 12)] * 3), ("Step Up Manubrio", [s(3, 10)] * 6)]
+
+
+class TestTime(unittest.TestCase):
+    def test_utc_to_rome_dst(self):
+        self.assertEqual(morning.to_rome("2026-10-10T22:30:00+00:00").date(), D(2026, 10, 11))
+        self.assertEqual(morning.to_rome("2026-11-10T23:30:00Z").date(), D(2026, 11, 11))
+        self.assertEqual(morning.to_rome("2026-11-10T22:30:00Z").date(), D(2026, 11, 10))
+
+
+class TestClassify(unittest.TestCase):
+    def test_by_exercises_not_title(self):
+        ws = [wk("2026-09-01T10:00:00Z", UPPER_B, title="Gambe (titolo sbagliato)")]
+        self.assertEqual(morning.classify(ws, SCHEDA)[0][1], "Upper B")
+
+    def test_legacy_titles(self):
+        ws = [wk("2026-09-01T10:00:00Z", [("Pushdown Tricipiti con Corda", [s(5, 12)])])]
+        self.assertEqual(morning.classify(ws, SCHEDA)[0][1], "Upper A")
+        ws = [wk("2026-09-01T10:00:00Z", [("Concentration Curl", [s(5, 12)])])]
+        self.assertEqual(morning.classify(ws, SCHEDA)[0][1], "Upper B")
+
+    def test_upper_c_tie_uses_rotation(self):
+        ws = [wk("2026-09-01T10:00:00Z", UPPER_B), wk("2026-09-02T10:00:00Z", UPPER_C)]
+        self.assertEqual([l for _, l in morning.classify(ws, SCHEDA)], ["Upper B", "Upper C"])
+
+    def test_walk_only_ignored(self):
+        ws = [wk("2026-09-01T10:00:00Z", [("Camminata", [{"type": "normal", "distance_meters": 900}])])]
+        self.assertIsNone(morning.classify(ws, SCHEDA)[0][1])
+
+
+class TestPlan(unittest.TestCase):
+    def plan(self, workouts, today):
+        return morning.plan_day(morning.classify(workouts, SCHEDA), SCHEDA, today)
+
+    def test_rotation_next(self):
+        p = self.plan([wk("2026-09-01T10:00:00Z", UPPER_A)], D(2026, 9, 3))
+        self.assertEqual((p["mode"], p["session"]), ("train", "Lower A"))
+        p = self.plan([wk("2026-09-01T10:00:00Z", UPPER_B)], D(2026, 9, 2))
+        self.assertEqual(p["session"], "Upper C")
+
+    def test_rest_after_lower_b(self):
+        ws = [wk("2026-10-10T12:00:00Z", LOWER_B)]
+        p = self.plan(ws, D(2026, 10, 11))
+        self.assertEqual((p["mode"], p["session"]), ("rest", "Upper A"))
+        p = self.plan(ws, D(2026, 10, 12))
+        self.assertEqual((p["mode"], p["session"]), ("train", "Upper A"))
+
+    def test_already_trained_today(self):
+        p = self.plan([wk("2026-09-01T06:00:00Z", UPPER_A)], D(2026, 9, 1))
+        self.assertEqual((p["mode"], p["next"]), ("done", "Lower A"))
+
+    def test_no_history_starts_rotation(self):
+        p = self.plan([], D(2026, 9, 1))
+        self.assertEqual(p["session"], "Upper A")
+
+
+class TestSets(unittest.TestCase):
+    def test_marked_warmup_excluded(self):
+        ws = morning.working_sets([s(5, 12, "warmup"), s(10, 12), s(10, 12, "failure"), s(8, 12, "dropset")])
+        self.assertEqual([x["weight_kg"] for x in ws], [10, 10, 8])
+
+    def test_implicit_warmup(self):
+        self.assertEqual(len(morning.working_sets([s(8, 12), s(10, 12), s(10, 12)])), 2)  # 8 < 8.5
+        self.assertEqual(len(morning.working_sets([s(9, 12), s(10, 12), s(10, 12)])), 3)  # 9 >= 8.5
+
+    def test_step_up_grouping(self):
+        g = morning.group_per_leg([s(0, 10), s(0, 10), s(3, 10), s(3, 10), s(4, 10), s(4, 9)])
+        self.assertEqual([(x["weight_kg"], x["reps"]) for x in g], [(0, 10), (3, 10), (4, 9)])
+        self.assertEqual(len(morning.working_sets(g)), 2)
+
+
+class TestSuggest(unittest.TestCase):
+    def sug(self, session, name, workouts, today=D(2026, 10, 5)):
+        cfg = ex_cfg(session, name)
+        cl = morning.classify(workouts, SCHEDA)
+        hist = morning.history_for(cfg, cl, SCHEDA)
+        return morning.suggest(cfg, hist, morning.phase(SCHEDA, today), 0.9)
+
+    def test_progress_after_two_sessions_at_top(self):
+        ws = [wk("2026-09-01T10:00:00Z", UPPER_B), wk("2026-09-05T10:00:00Z", UPPER_B)]
+        self.assertTrue(self.sug("Upper B", "Vertical Traction", ws)[0].startswith("27,5 kg"))
+        self.assertEqual(self.sug("Upper B", "Pullover con manubrio", ws)[0], "10 kg")
+
+    def test_one_session_at_top_keeps_load(self):
+        load, goal, _, _ = self.sug("Upper B", "Vertical Traction", [wk("2026-09-01T10:00:00Z", UPPER_B)])
+        self.assertEqual(load, "25 kg")
+        self.assertIn("già al tetto", goal)
+
+    def test_below_top_same_load_more_reps(self):
+        load, goal, last, _ = self.sug("Lower A", "Leg Press", [wk("2026-09-01T10:00:00Z", LOWER_A)])
+        self.assertEqual(load, "40 kg")
+        self.assertIn("+1-2 rip", goal)
+        self.assertIn("4x10 a 40 kg", last)
+
+    def test_step_up_top_is_10(self):
+        ws = [wk("2026-09-01T10:00:00Z", LOWER_B), wk("2026-09-06T10:00:00Z", LOWER_B)]
+        self.assertEqual(self.sug("Lower B", "Step-up su panca", ws)[0], "4 kg per mano")
+
+    def test_no_history(self):
+        self.assertEqual(self.sug("Upper C", "Face pull", [])[0], morning.TARATURA)
+        self.assertIn("partenza 5 kg", self.sug("Upper C", "Shoulder Press (macchina)", [])[0])
+        self.assertEqual(self.sug("Lower A", "Panca Romana", [])[0], "corpo libero")
+
+    def test_deload_minus_10_percent(self):
+        ws = [wk("2026-10-20T10:00:00Z", UPPER_B), wk("2026-10-22T10:00:00Z", UPPER_B)]
+        load, goal, _, _ = self.sug("Upper B", "Vertical Traction", ws, today=D(2026, 10, 27))
+        self.assertEqual(load, "22,5 kg")  # 25*0.9=22.5, nessuna progressione
+        self.assertIn("RPE 6", goal)
+
+    def test_after_cycle_no_progression(self):
+        ws = [wk("2026-10-20T10:00:00Z", UPPER_B), wk("2026-10-22T10:00:00Z", UPPER_B)]
+        self.assertEqual(self.sug("Upper B", "Vertical Traction", ws, today=D(2026, 11, 3))[0], "25 kg")
+
+    def test_round_step(self):
+        self.assertEqual(morning.deload(17.5, 2.5, 0.9), 15)
+        self.assertEqual(morning.deload(7, 1, 0.9), 6)
+        self.assertEqual(morning.deload(50, 5, 0.9), 45)
+
+
+class TestMessage(unittest.TestCase):
+    def msg(self, workouts, today):
+        return morning.build_message(morning.classify(workouts, SCHEDA), SCHEDA, today)
+
+    def test_rest_message(self):
+        m = self.msg([wk("2026-10-10T12:00:00Z", LOWER_B)], D(2026, 10, 11))
+        self.assertIn("Oggi riposo consigliato", m)
+        self.assertIn("Domani: Upper A", m)
+
+    def test_training_message_and_core(self):
+        m = self.msg([wk("2026-10-10T12:00:00Z", LOWER_B)], D(2026, 10, 12))
+        self.assertIn("Oggi: Upper A (65-75 min)", m)
+        self.assertIn("Core: Core corto", m)
+        self.assertLess(len(m), 3500)
+
+    def test_walks(self):
+        m = self.msg([wk("2026-10-12T12:00:00Z", UPPER_A)], D(2026, 10, 14))
+        self.assertIn("Camminata: 8 km alle 18:30", m)
+        m = self.msg([wk("2026-11-01T12:00:00Z", UPPER_A)], D(2026, 11, 3))
+        self.assertIn("nessuna camminata in piano", m)
+        self.assertIn("serve la nuova scheda", m)
+        m = self.msg([wk("2026-10-12T12:00:00Z", UPPER_A)], D(2026, 10, 13))
+        self.assertNotIn("Camminata", m)
+
+    def test_deload_note(self):
+        m = self.msg([wk("2026-10-26T12:00:00Z", UPPER_A)], D(2026, 10, 28))
+        self.assertIn("Settimana di scarico", m)
+
+    def test_upper_c_notes(self):
+        m = self.msg([wk("2026-09-01T10:00:00Z", UPPER_B)], D(2026, 9, 2))
+        self.assertIn("Oggi: Upper C", m)
+        self.assertIn("dimmi il nome in Hevy", m)
+
+    def test_unrecognized_listed(self):
+        m = self.msg([wk("2026-09-01T10:00:00Z", UPPER_C)], D(2026, 9, 3))
+        self.assertIn("Esercizi non riconosciuti: Macchina Spalle Ignota", m)
+
+    def test_fixture_end_to_end(self):
+        with open(os.path.join(HERE, "fixture_workouts.json"), encoding="utf-8") as f:
+            ws = json.load(f)["workouts"]
+        m = self.msg(ws, D(2026, 9, 9))
+        self.assertIn("Oggi: Lower A", m)
+        self.assertNotIn("Camminata,", m)
+
+
+class TestSafety(unittest.TestCase):
+    def test_host_allowlist(self):
+        with self.assertRaises(morning.FetchError):
+            morning._check_host("https://example.com/x")
+
+    def test_only_get_to_hevy(self):
+        with open(morning.__file__, encoding="utf-8") as f:
+            src = f.read()
+        for verb in ('method="PUT"', 'method="DELETE"', 'method="PATCH"'):
+            self.assertNotIn(verb, src)
+        hevy_fn = src.split("def hevy_get")[1].split("def fetch_workouts")[0]
+        self.assertIn('method="GET"', hevy_fn)
+        self.assertNotIn("data=", hevy_fn)
+
+
+if __name__ == "__main__":
+    unittest.main()

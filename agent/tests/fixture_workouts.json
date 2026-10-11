@@ -1,0 +1,572 @@
+{
+ "note": "dati inventati per i test",
+ "workouts": [
+  {
+   "id": "2026-09-01T16:00:00+00:00",
+   "title": "Petto",
+   "start_time": "2026-09-01T16:00:00+00:00",
+   "end_time": "2026-09-01T16:00:00+00:00",
+   "exercises": [
+    {
+     "title": "Chest Press (Macchina)",
+     "sets": [
+      {
+       "type": "normal",
+       "weight_kg": 20,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 20,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 20,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 20,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      }
+     ]
+    },
+    {
+     "title": "Panca Inclinata (Manubrio)",
+     "sets": [
+      {
+       "type": "normal",
+       "weight_kg": 5,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 5,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 5,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      }
+     ]
+    },
+    {
+     "title": "Pushdown Tricipiti con Corda",
+     "sets": [
+      {
+       "type": "normal",
+       "weight_kg": 5,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 5,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 5,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "2026-09-02T16:00:00+00:00",
+   "title": "Gambe",
+   "start_time": "2026-09-02T16:00:00+00:00",
+   "end_time": "2026-09-02T16:00:00+00:00",
+   "exercises": [
+    {
+     "title": "Leg Press Orizzontale (Macchina)",
+     "sets": [
+      {
+       "type": "normal",
+       "weight_kg": 40,
+       "reps": 10,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 40,
+       "reps": 10,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 40,
+       "reps": 10,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 40,
+       "reps": 10,
+       "distance_meters": null,
+       "duration_seconds": null
+      }
+     ]
+    },
+    {
+     "title": "Calf Raise in Piedi (Manubrio)",
+     "sets": [
+      {
+       "type": "normal",
+       "weight_kg": 0,
+       "reps": 15,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 0,
+       "reps": 15,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 0,
+       "reps": 15,
+       "distance_meters": null,
+       "duration_seconds": null
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "2026-09-03T16:00:00+00:00",
+   "title": "Schiena qualcosa",
+   "start_time": "2026-09-03T16:00:00+00:00",
+   "end_time": "2026-09-03T16:00:00+00:00",
+   "exercises": [
+    {
+     "title": "Trazione verticale (macchina)",
+     "sets": [
+      {
+       "type": "normal",
+       "weight_kg": 25,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 25,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 25,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 25,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      }
+     ]
+    },
+    {
+     "title": "Rematore T Bar",
+     "sets": [
+      {
+       "type": "normal",
+       "weight_kg": 10,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 10,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 10,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      }
+     ]
+    },
+    {
+     "title": "Camminata",
+     "sets": [
+      {
+       "type": "normal",
+       "weight_kg": null,
+       "reps": null,
+       "distance_meters": 1000,
+       "duration_seconds": 700
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "2026-09-04T16:00:00+00:00",
+   "title": "Spalle nuove",
+   "start_time": "2026-09-04T16:00:00+00:00",
+   "end_time": "2026-09-04T16:00:00+00:00",
+   "exercises": [
+    {
+     "title": "Shoulder Press Inventata",
+     "sets": [
+      {
+       "type": "normal",
+       "weight_kg": 5,
+       "reps": 10,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 5,
+       "reps": 10,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 5,
+       "reps": 10,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 5,
+       "reps": 10,
+       "distance_meters": null,
+       "duration_seconds": null
+      }
+     ]
+    },
+    {
+     "title": "Alzate Laterali (Macchina)",
+     "sets": [
+      {
+       "type": "normal",
+       "weight_kg": 10,
+       "reps": 15,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 10,
+       "reps": 15,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 10,
+       "reps": 15,
+       "distance_meters": null,
+       "duration_seconds": null
+      }
+     ]
+    },
+    {
+     "title": "Face Pull Inventato",
+     "sets": [
+      {
+       "type": "normal",
+       "weight_kg": 5,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 5,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 5,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "2026-09-05T16:00:00+00:00",
+   "title": "Glutei",
+   "start_time": "2026-09-05T16:00:00+00:00",
+   "end_time": "2026-09-05T16:00:00+00:00",
+   "exercises": [
+    {
+     "title": "Stacco da Terra Rumeno (Manubrio)",
+     "sets": [
+      {
+       "type": "warmup",
+       "weight_kg": 4,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 6,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 6,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 6,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      }
+     ]
+    },
+    {
+     "title": "Step Up Manubrio",
+     "sets": [
+      {
+       "type": "normal",
+       "weight_kg": 0,
+       "reps": 10,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 0,
+       "reps": 10,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 3,
+       "reps": 10,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 3,
+       "reps": 10,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 3,
+       "reps": 10,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 3,
+       "reps": 10,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 3,
+       "reps": 10,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 3,
+       "reps": 10,
+       "distance_meters": null,
+       "duration_seconds": null
+      }
+     ]
+    },
+    {
+     "title": "Abduzione Anche (Macchina)",
+     "sets": [
+      {
+       "type": "normal",
+       "weight_kg": 15,
+       "reps": 15,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 15,
+       "reps": 15,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "failure",
+       "weight_kg": 17.5,
+       "reps": 13,
+       "distance_meters": null,
+       "duration_seconds": null
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "2026-09-08T16:00:00+00:00",
+   "title": "Giorno 1",
+   "start_time": "2026-09-08T16:00:00+00:00",
+   "end_time": "2026-09-08T16:00:00+00:00",
+   "exercises": [
+    {
+     "title": "Chest Press (Macchina)",
+     "sets": [
+      {
+       "type": "normal",
+       "weight_kg": 12.5,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 20,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 20,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 20,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 20,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      }
+     ]
+    },
+    {
+     "title": "Panca Inclinata (Manubrio)",
+     "sets": [
+      {
+       "type": "normal",
+       "weight_kg": 5,
+       "reps": 11,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 5,
+       "reps": 10,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 5,
+       "reps": 10,
+       "distance_meters": null,
+       "duration_seconds": null
+      }
+     ]
+    },
+    {
+     "title": "Pushdown Tricipiti",
+     "sets": [
+      {
+       "type": "warmup",
+       "weight_kg": 7.5,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 10,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "normal",
+       "weight_kg": 10,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      },
+      {
+       "type": "dropset",
+       "weight_kg": 10,
+       "reps": 12,
+       "distance_meters": null,
+       "duration_seconds": null
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
