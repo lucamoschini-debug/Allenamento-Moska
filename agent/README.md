@@ -32,7 +32,8 @@ Variabili d'ambiente: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`. La chiave Hevy �
 - **Senza storico**: `start_load` numerico → "partenza X, poi tara a RPE 7-8"; "da definire" → testo di taratura.
 - **Unità**: `kg totali`, `kg per mano`, `kg di dischi` (Multipower: solo dischi, mostrato anche per lato).
 - **Ciclo**: 26/10-01/11 scarico (-10% arrotondato al gradino, RPE 6, nessuna progressione); dopo il 01/11 "ciclo concluso", carichi mantenuti.
-- **Giorni di riposo**: messaggio breve con la seduta di domani e "Core o Mobilità e cervicale, se hai tempo". Core e camminate non sono legati alle sedute.
+- **Giorni di riposo**: messaggio breve con la seduta di domani e "Core o Mobilità e cervicale, se hai tempo". Il core non è legato alle sedute.
+- **Camminate**: il Cammino è in pausa, il messaggio non contiene camminate. Le voci "Camminata" registrate in Hevy sono ignorate.
 
 ## File
 

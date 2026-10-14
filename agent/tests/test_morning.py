@@ -184,6 +184,29 @@ class TestMessage(unittest.TestCase):
         self.assertIn("Oggi: Upper A (circa 68-72 min)", m)
         self.assertLess(len(m), 3500)
 
+    def test_no_walk_references_anywhere(self):
+        """Il Cammino è in pausa: nessun riferimento alle camminate, in nessun giorno."""
+        banned = ("cammin", " km", "nessuna camminata in piano", "18:30", "09:00")
+        cases = [
+            ([wk("2026-10-12T12:00:00Z", UPPER_A)], D(2026, 10, 14)),   # mercoledì, allenamento
+            ([wk("2026-10-17T12:00:00Z", LOWER_B)], D(2026, 10, 18)),   # domenica, riposo
+            ([wk("2026-10-20T12:00:00Z", UPPER_B)], D(2026, 10, 21)),
+            ([wk("2026-10-24T12:00:00Z", LOWER_B)], D(2026, 10, 25)),
+            ([wk("2026-10-27T12:00:00Z", UPPER_A)], D(2026, 10, 28)),   # scarico
+            ([wk("2026-10-31T12:00:00Z", LOWER_B)], D(2026, 11, 1)),
+            ([wk("2026-11-02T12:00:00Z", UPPER_C)], D(2026, 11, 4)),    # dopo il ciclo
+            ([wk("2026-10-14T05:00:00Z", UPPER_A)], D(2026, 10, 14)),   # già allenato oggi
+        ]
+        for workouts, today in cases:
+            m = self.msg(workouts, today).lower()
+            for b in banned:
+                self.assertNotIn(b, m, "%s in messaggio del %s" % (b, today))
+        self.assertNotIn("walks", SCHEDA)
+
+    def test_hevy_walk_not_listed_as_unrecognized(self):
+        ws = [wk("2026-10-13T12:00:00Z", UPPER_A + [("Camminata", [{"type": "normal", "distance_meters": 900}])])]
+        self.assertNotIn("Camminata", self.msg(ws, D(2026, 10, 14)))
+
     def test_no_walks_no_core_on_training_days(self):
         m = self.msg([wk("2026-10-12T12:00:00Z", UPPER_A)], D(2026, 10, 14))
         self.assertNotIn("Camminata", m)
