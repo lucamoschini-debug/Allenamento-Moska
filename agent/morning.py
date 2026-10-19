@@ -257,11 +257,15 @@ def history_for(exercise, classified, scheda):
                 sets.extend(e.get("sets", []))
         if not sets:
             continue
+        started = to_rome(w["start_time"])
+        total_from = exercise.get("hevy_total_from")
+        if total_from and started.date() >= dt.date.fromisoformat(total_from):
+            # In Hevy è segnato il totale dei due manubri: si riporta al peso per mano.
+            sets = [dict(x, weight_kg=_w(x) / 2) for x in sets]
         if exercise.get("per_leg"):
             sets = group_per_leg(sets)
         ws = working_sets(sets)
         if ws:
-            started = to_rome(w["start_time"])
             hist.append((started.date(), ws, started))
     return hist
 
@@ -297,6 +301,9 @@ def fmt_loads(loads, unit):
         txt = "/".join(fmt_num(l) for l in loads)
     if unit == "kg per mano":
         return txt + " kg per mano"
+    if unit == "kg per mano, totale in Hevy":
+        tot = "/".join(fmt_num(l * 2) for l in loads) if len(set(loads)) > 1 else fmt_num(loads[0] * 2)
+        return txt + " kg per mano (in Hevy %s kg totali)" % tot
     if unit == "kg di dischi":
         return txt + " kg di dischi (%s per lato)" % "/".join(fmt_num(l / 2) for l in sorted(set(loads), key=loads.index))
     return txt + " kg"

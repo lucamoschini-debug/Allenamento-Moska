@@ -140,7 +140,7 @@ class TestSuggest(unittest.TestCase):
 
     def test_step_up_top_is_10(self):
         ws = [wk("2026-09-01T10:00:00Z", LOWER_B), wk("2026-09-06T10:00:00Z", LOWER_B)]
-        self.assertEqual(self.sug("Lower B", "Step Up Manubrio", ws)[0], "4 kg per mano")
+        self.assertEqual(self.sug("Lower B", "Step Up Manubrio", ws)[0], "4 kg per mano (in Hevy 8 kg totali)")
 
     def test_no_history(self):
         self.assertEqual(self.sug("Upper C", "Face Pull", [])[0], morning.TARATURA)
@@ -175,6 +175,15 @@ class TestSuggest(unittest.TestCase):
         ws = [wk("2026-09-01T10:00:00Z", [("Back Extension (Iperestensione)", [s(None, 12)] * 3)])]
         hist = morning.history_for(cfg, morning.classify(ws, SCHEDA), SCHEDA)
         self.assertIn("zavorra", morning.suggest(cfg, hist, "normal", 0.9)[1])
+
+    def test_hevy_total_of_two_dumbbells(self):
+        cfg = ex_cfg("Lower B", "Stacco da Terra Rumeno (Manubrio)")
+        ws = [wk("2026-10-10T10:00:00Z", [("Stacco da Terra Rumeno (Manubrio)", [s(8, 12)] * 3)]),   # per mano
+              wk("2026-10-19T10:00:00Z", [("Stacco da Terra Rumeno (Manubrio)", [s(16, 12)] * 3)])]  # totale
+        hist = morning.history_for(cfg, morning.classify(ws, SCHEDA), SCHEDA)
+        load, goal, last, _ = morning.suggest(cfg, hist, "normal", 0.9)
+        self.assertEqual(load, "9 kg per mano (in Hevy 18 kg totali)")  # 2 sedute al tetto a 8 per mano
+        self.assertIn("a 8 kg", last)
 
     def test_round_step(self):
         self.assertEqual(morning.deload(17.5, 2.5, 0.9), 15)

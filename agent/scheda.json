@@ -409,8 +409,9 @@
           "rep_max": 12,
           "start_load": 8,
           "step_kg": 1,
-          "unit": "kg per mano",
-          "notes": "schiena neutra"
+          "unit": "kg per mano, totale in Hevy",
+          "notes": "schiena neutra",
+          "hevy_total_from": "2026-10-19"
         },
         {
           "name": "Hip Thrust (macchina)",
@@ -448,9 +449,10 @@
           "rep_max": 10,
           "start_load": 5,
           "step_kg": 1,
-          "unit": "kg per mano",
+          "unit": "kg per mano, totale in Hevy",
           "per_leg": true,
-          "notes": ""
+          "notes": "",
+          "hevy_total_from": "2026-10-19"
         },
         {
           "name": "Abduzione Anche (Macchina)",
