@@ -355,6 +355,19 @@
           "notes": ""
         },
         {
+          "name": "Rematore Verticale (Bilanciere)",
+          "hevy_titles": [
+            "Rematore Verticale (Bilanciere)"
+          ],
+          "sets": 3,
+          "rep_min": 10,
+          "rep_max": 12,
+          "start_load": 15,
+          "step_kg": 2.5,
+          "unit": "kg totali",
+          "notes": "se la spalla dà fastidio, saltalo"
+        },
+        {
           "name": "Alzate Laterali (Macchina)",
           "hevy_titles": [
             "Alzate Laterali (Macchina)"
@@ -445,8 +458,8 @@
             "Step Up Manubrio"
           ],
           "sets": 3,
-          "rep_min": 10,
-          "rep_max": 10,
+          "rep_min": 12,
+          "rep_max": 12,
           "start_load": 5,
           "step_kg": 1,
           "unit": "kg per mano, totale in Hevy",

@@ -31,7 +31,7 @@ UPPER_A = [("Chest Press (Macchina)", [s(20, 12)] * 4), ("Croci (Macchina)", [s(
 LOWER_A = [("Leg Press Orizzontale (Macchina)", [s(40, 10)] * 4), ("Leg Extension (Macchina)", [s(10, 12)] * 3)]
 UPPER_B = [("Trazione verticale (macchina)", [s(25, 12)] * 4), ("Curl Bicipiti (Manubrio)", [s(9, 12)] * 3)]
 UPPER_C = [("Alzate Laterali (Macchina)", [s(10, 12)] * 3), ("Macchina Spalle Ignota", [s(5, 10)] * 4)]
-LOWER_B = [("Hip Thrust (macchina)", [s(30, 12)] * 3), ("Step Up Manubrio", [s(3, 10)] * 6)]
+LOWER_B = [("Hip Thrust (macchina)", [s(30, 12)] * 3), ("Step Up Manubrio", [s(3, 12)] * 6)]
 
 
 class TestTime(unittest.TestCase):
@@ -138,7 +138,7 @@ class TestSuggest(unittest.TestCase):
         self.assertIn("+1-2 rip", goal)
         self.assertIn("4x10 a 40 kg", last)
 
-    def test_step_up_top_is_10(self):
+    def test_step_up_top_is_12(self):
         ws = [wk("2026-09-01T10:00:00Z", LOWER_B), wk("2026-09-06T10:00:00Z", LOWER_B)]
         self.assertEqual(self.sug("Lower B", "Step Up Manubrio", ws)[0], "4 kg per mano (in Hevy 8 kg totali)")
 
@@ -246,6 +246,11 @@ class TestMessage(unittest.TestCase):
         m = self.msg([wk("2026-09-01T10:00:00Z", UPPER_B)], D(2026, 9, 2))
         self.assertIn("Oggi: Upper C", m)
         self.assertIn("Nuovi esercizi (senza storico): Lento in Avanti Seduto (Macchina)", m)
+
+    def test_upright_row_in_upper_c(self):
+        ws = [wk("2026-10-16T10:00:00Z", [("Rematore Verticale (Bilanciere)", [s(15, 12)] * 4)] + UPPER_C)]
+        m = self.msg(ws, D(2026, 10, 21))
+        self.assertNotIn("non riconosciuti: Rematore Verticale", m)
 
     def test_unrecognized_listed(self):
         m = self.msg([wk("2026-09-01T10:00:00Z", UPPER_C)], D(2026, 9, 3))
