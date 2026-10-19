@@ -404,6 +404,12 @@ class TestRoutines(unittest.TestCase):
         lines, _, _, _ = self.block(ws, rt, today=D(2026, 10, 28), ph="deload")
         self.assertIn("— 17,5 kg (scarico, RPE 6", lines[0])
 
+    def test_template_id_from_scheda_and_taratura_not_a_difference(self):
+        rt = [routine("Giorno 3 - Upper B", [("Single Arm Cable Row", "D0C4A899", [s(10, 12)] * 3)])]
+        lines, _, _, diffs = self.block([], rt, "Upper B")
+        self.assertTrue(any(l.startswith("- Rematore al Cavo a un Braccio — 3x10-12 — 10 kg") for l in lines))
+        self.assertFalse([d for d in diffs if "Braccio" in d or "Single Arm" in d])
+
     def test_without_routines_scheda_only(self):
         ws = [wkt("2026-10-11T10:00:00Z", [("Chest Press (Macchina)", "T1", [s(17.5, 12)] * 3)])]
         lines, _, _, diffs = self.block(ws, None)

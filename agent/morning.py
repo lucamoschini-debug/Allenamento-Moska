@@ -630,7 +630,7 @@ def session_block(name, classified, scheda, today, ph, routines=None):
         rl = routine_loads(ex, rex) if rex else []
         if rl:
             r_load, r_goal, r_last, r_new = suggest_from_routine(ex, hist, ph, factor, rl)
-            if r_load != load or len(rl) != n_sets:
+            if (r_load != load and load != TARATURA) or len(rl) != n_sets:
                 diffs.append("%s %dx %s (scheda %dx %s)" % (ex["name"], len(rl), r_load, n_sets, load))
             load, goal, last, is_new = r_load, r_goal, r_last, r_new
             n_sets = len(rl)

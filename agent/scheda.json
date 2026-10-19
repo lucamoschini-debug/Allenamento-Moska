@@ -311,7 +311,10 @@
           "start_load": "da definire",
           "step_kg": 2.5,
           "unit": "kg totali",
-          "notes": "cavo basso, presa neutra, parti da circa 10 kg; gomito vicino al corpo"
+          "notes": "cavo basso, presa neutra, parti da circa 10 kg; gomito vicino al corpo",
+          "hevy_template_ids": [
+            "D0C4A899"
+          ]
         },
         {
           "name": "Curl Bicipiti (Manubrio)",
