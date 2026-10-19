@@ -452,12 +452,18 @@ def plan_day(classified, scheda, today):
     last_w, last_label = recognized[-1]
     last_day = to_rome(last_w["start_time"]).date()
     nxt = next_in_rotation(scheda, last_label)
-    info = {"last": (last_label, last_day), "next": nxt}
+    info = {"last": (last_label, last_day), "next": nxt, "rested_before": None}
+    if last_label == scheda["rest_after"]:
+        # Riposo già fatto prima del Lower B: almeno un giorno libero dalla seduta precedente.
+        prev_days = [to_rome(w["start_time"]).date() for w, _l in recognized[:-1]]
+        prev_days = [d for d in prev_days if d < last_day]
+        if prev_days and (last_day - prev_days[-1]).days >= 2:
+            info["rested_before"] = prev_days[-1]
     if last_day >= today:
         info["mode"] = "done"
         info["session"] = last_label
         return info
-    if last_label == scheda["rest_after"] and (today - last_day).days <= 1:
+    if last_label == scheda["rest_after"] and (today - last_day).days <= 1 and not info["rested_before"]:
         info["mode"] = "rest"
         info["session"] = nxt
         return info
@@ -559,7 +565,7 @@ def build_message(classified, scheda, today):
         else:
             lbl, _d = plan["last"]
             out.append("Oggi hai già registrato un allenamento: %s." % lbl)
-            if lbl == scheda["rest_after"]:
+            if lbl == scheda["rest_after"] and not plan.get("rested_before"):
                 out.append("Prossima seduta: %s, dopo 1-2 giorni di riposo." % plan["next"])
             else:
                 out.append("Prossima seduta: %s (%s)" % (plan["next"], scheda["sessions"][plan["next"]]["duration"]))
@@ -569,6 +575,9 @@ def build_message(classified, scheda, today):
         name = plan["session"]
         s = scheda["sessions"][name]
         out.append("Oggi: %s (%s)" % (name, s["duration"]))
+        if plan.get("rested_before") and plan["last"][0] == scheda["rest_after"]:
+            notes.append("Riposo già fatto prima del %s (allenamento precedente: %s)." % (
+                plan["last"][0], plan["rested_before"].strftime("%d/%m")))
         lines, new_ex, no_title = session_block(name, classified, scheda, today, ph)
         out.extend(lines)
         if new_ex:

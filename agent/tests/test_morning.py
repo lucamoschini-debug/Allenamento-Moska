@@ -86,6 +86,28 @@ class TestPlan(unittest.TestCase):
         p = self.plan(ws, D(2026, 10, 12))
         self.assertEqual((p["mode"], p["session"]), ("train", "Upper A"))
 
+    def test_rest_already_taken_before_lower_b(self):
+        # Upper C il 16, riposo il 17-18, Lower B il 19: il 20 si allena.
+        ws = [wk("2026-10-16T10:00:00Z", UPPER_C), wk("2026-10-19T10:00:00Z", LOWER_B)]
+        p = self.plan(ws, D(2026, 10, 20))
+        self.assertEqual((p["mode"], p["session"]), ("train", "Upper A"))
+        m = morning.build_message(morning.classify(ws, SCHEDA), SCHEDA, D(2026, 10, 20))
+        self.assertIn("Oggi: Upper A", m)
+        self.assertIn("Riposo già fatto prima del Lower B (allenamento precedente: 16/10).", m)
+        p = self.plan(ws, D(2026, 10, 19))
+        self.assertEqual(p["mode"], "done")
+        self.assertNotIn("1-2 giorni di riposo", morning.build_message(morning.classify(ws, SCHEDA), SCHEDA, D(2026, 10, 19)))
+
+    def test_rest_needed_when_lower_b_follows_without_rest(self):
+        ws = [wk("2026-10-18T10:00:00Z", UPPER_C), wk("2026-10-19T10:00:00Z", LOWER_B)]
+        self.assertEqual(self.plan(ws, D(2026, 10, 20))["mode"], "rest")
+
+    def test_core_day_does_not_break_rest_check(self):
+        # Il Core non è un allenamento della rotazione: il giorno di Core conta come riposo.
+        ws = [wk("2026-10-16T10:00:00Z", UPPER_C), wk("2026-10-17T10:00:00Z", [("Dead Bug", [s(None, 8)])], title="Core Completo"),
+              wk("2026-10-19T10:00:00Z", LOWER_B)]
+        self.assertEqual(self.plan(ws, D(2026, 10, 20))["mode"], "train")
+
     def test_already_trained_today(self):
         p = self.plan([wk("2026-09-01T06:00:00Z", UPPER_A)], D(2026, 9, 1))
         self.assertEqual((p["mode"], p["next"]), ("done", "Lower A"))
