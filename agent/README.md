@@ -15,7 +15,7 @@ Variabili d'ambiente: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`. La chiave Hevy �
 
 ## Sicurezza
 
-- Hevy: solo `GET /v1/workouts` (funzione `hevy_get`, unica che parla con Hevy).
+- Hevy: solo `GET /v1/workouts` e `GET /v1/routines` (funzione `hevy_get`, unica che parla con Hevy).
 - Telegram: solo `sendMessage` verso `TELEGRAM_CHAT_ID`; non legge messaggi in arrivo.
 - Host consentiti: `api.hevyapp.com`, `api.telegram.org` (controllo in `_check_host`).
 - Il token non viene mai stampato; gli errori sono riportati senza traceback e senza URL.
@@ -29,6 +29,7 @@ Variabili d'ambiente: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`. La chiave Hevy �
 - **Storico**: per i carichi si usano solo gli `hevy_titles` dell'esercizio, non i legacy. Se l'esercizio compare in più sedute (es. Deltoid Machine, Calf Raise Seduto), vale l'ultima esecuzione.
 - **Progressione**: tutte le serie di lavoro al tetto (`rep_max`) nelle ultime due esecuzioni, con la precedente ad almeno gli stessi carichi → +`step_kg`; altrimenti stesso carico e +1-2 ripetizioni. Carichi per serie mantenuti (es. Leg Press 50/50/50/60).
 - **Nuova scheda**: per ogni esercizio, la prima seduta dopo `version_datetime` usa il carico di partenza della scheda (se numerico); dalla seduta successiva vale la regola di progressione.
+- **Routine Hevy**: la base è `scheda.json`, ma ogni mattina lo script legge le routine Hevy (una per seduta, riconosciuta dal nome, es. "Upper A") e le confronta con la scheda. Esercizi abbinati dal codice esercizio Hevy (le routine hanno i nomi inglesi). Se serie o carichi non coincidono vale la routine: la progressione si calcola sul carico della routine (+1 gradino se le ultime due sedute sono al tetto con almeno quel carico); scarico, settimana di ripetizioni e progressione sospesa restano validi. Le differenze, gli esercizi mancanti nella routine e quelli in più finiscono nelle note. Se le routine non si leggono, vale solo la scheda.
 - **Senza storico**: `start_load` numerico → "partenza X, poi tara a RPE 7-8"; "da definire" → testo di taratura.
 - **Unità**: `kg totali`, `kg per mano`, `kg di dischi` (Multipower: solo dischi, mostrato anche per lato), `kg per mano, totale in Hevy` (Stacco rumeno e Step-up: dal `hevy_total_from` in Hevy si segna il totale dei due manubri; lo storico viene diviso per due).
 - **Ciclo**: settimane in `scheda.json` → `cycle.weeks` (S3-S8, 19/10-29/11). Settimane di scarico (S4, S8): -10% arrotondato al gradino, RPE 6, nessuna progressione. S6: stessi carichi, solo ripetizioni. Dopo uno scarico si riparte dai carichi di prima (le sedute di scarico non contano per lo storico). Dopo il 29/11 "ciclo concluso", carichi mantenuti.

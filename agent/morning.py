@@ -113,6 +113,17 @@ def fetch_workouts():
     return workouts
 
 
+def fetch_routines():
+    routines = []
+    page, page_count = 1, 1
+    while page <= page_count and page <= MAX_PAGES:
+        data = hevy_get("/v1/routines", {"page": page, "pageSize": 10})
+        routines.extend(data.get("routines", []))
+        page_count = int(data.get("page_count", 1) or 1)
+        page += 1
+    return routines
+
+
 def telegram_send(text):
     token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
     chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
@@ -440,6 +451,86 @@ def suggest(exercise, history, ph, factor, version_dt=None):
 
 
 # --------------------------------------------------------------------------
+# Routine Hevy: controllo della scheda (in caso di differenza vale la routine)
+# --------------------------------------------------------------------------
+
+def template_map(classified):
+    """{titolo italiano normalizzato: codice esercizio Hevy} dagli allenamenti registrati.
+    Le routine arrivano con i nomi inglesi: il codice è il collegamento."""
+    out = {}
+    for w, _l in classified:
+        for e in w.get("exercises", []):
+            if e.get("exercise_template_id"):
+                out.setdefault(norm(e.get("title")), e["exercise_template_id"])
+    return out
+
+
+def routine_for(session, routines):
+    import re
+    pat = re.compile(r"\b%s\b" % re.escape(norm(session)))
+    for r in routines or []:
+        if pat.search(norm(r.get("title"))):
+            return r
+    return None
+
+
+def exercise_tids(exercise, tmap):
+    tids = set(exercise.get("hevy_template_ids", []))
+    tids.update(tmap[norm(t)] for t in exercise.get("hevy_titles", []) if norm(t) in tmap)
+    return tids
+
+
+def routine_loads(exercise, rex):
+    """Carichi delle serie di lavoro (non warmup) dell'esercizio nella routine."""
+    sets = [dict(x, reps=x.get("reps") or 1) for x in rex.get("sets", [])]
+    if exercise.get("per_leg"):
+        sets = group_per_leg(sets)
+    loads = [_w(x) for x in sets if x.get("type") != "warmup"]
+    if exercise.get("hevy_total_from"):
+        loads = [l / 2 for l in loads]
+    return loads
+
+
+def _loads_of(ws, n):
+    loads = [_w(x) for x in ws][:n]
+    while loads and len(loads) < n:
+        loads.append(loads[-1])
+    return loads
+
+
+def suggest_from_routine(exercise, history, ph, factor, rloads):
+    """Come suggest(), ma il carico di base è quello della routine Hevy."""
+    step = exercise.get("step_kg")
+    unit = exercise.get("unit", "kg totali")
+    rmax = exercise["rep_max"]
+    loads = list(rloads)
+    n = len(loads)
+    last_txt = fmt_last(history[0][0], history[0][1], exercise.get("per_leg", False)) if history else None
+    if ph == "deload":
+        return fmt_loads([deload(l, step, factor) for l in loads], unit), "scarico, RPE 6", last_txt, not history
+    if ph == "ended":
+        return fmt_loads(loads, unit), "stesso carico", last_txt, not history
+    if exercise.get("progression_suspended"):
+        return fmt_loads(loads, unit), "stesso carico, progressione sospesa", last_txt, not history
+    if ph == "no_progression":
+        return fmt_loads(loads, unit), "settimana di ripetizioni: stesso carico, +1-2 rip per serie fino a %d" % rmax, last_txt, not history
+    if not history:
+        return fmt_loads(loads, unit), "carico della routine, poi tara a RPE 7-8", None, True
+
+    def ok(ws):  # al tetto con almeno i carichi della routine
+        return at_top(ws, rmax) and all(h >= r for h, r in zip(_loads_of(ws, n), loads))
+    top_now = ok(history[0][1])
+    top_prev = len(history) >= 2 and ok(history[1][1])
+    if top_now and top_prev and step and any(loads):
+        return fmt_loads([l + step for l in loads], unit), "+%s kg: 2 sedute al tetto" % fmt_num(step), last_txt, False
+    if top_now:
+        if not step:
+            return fmt_loads(loads, unit), "al tetto: +1-2 rip o zavorra leggera", last_txt, False
+        return fmt_loads(loads, unit), "stesso carico, già al tetto: se si ripete +1 gradino", last_txt, False
+    return fmt_loads(loads, unit), "stesso carico, +1-2 rip per serie fino a %d" % rmax, last_txt, False
+
+
+# --------------------------------------------------------------------------
 # Piano del giorno
 # --------------------------------------------------------------------------
 
@@ -504,24 +595,50 @@ def unrecognized(classified, scheda, today, days=14):
     return seen
 
 
-def session_block(name, classified, scheda, today, ph):
+def session_block(name, classified, scheda, today, ph, routines=None):
+    """Righe della seduta. Ritorna (righe, nuovi esercizi, senza titolo Hevy, differenze con la routine).
+    Con le routine Hevy (routines non None): dove la routine non coincide con la
+    scheda valgono serie e carichi della routine, e la differenza viene segnalata."""
     s = scheda["sessions"][name]
     factor = scheda["cycle"].get("deload_factor", 0.9)
     version_dt = dt.datetime.fromisoformat(scheda["version_datetime"]) if scheda.get("version_datetime") else None
     lines = []
-    new_ex, no_title = [], []
+    new_ex, no_title, diffs = [], [], []
+    routine = routine_for(name, routines) if routines is not None else None
+    if routines is not None and routine is None:
+        diffs.append("routine '%s' non trovata in Hevy" % name)
+    tmap = template_map(classified)
+    matched = set()
     for ex in s["exercises"]:
         reps = "%d" % ex["rep_min"] if ex["rep_min"] == ex["rep_max"] else "%d-%d" % (ex["rep_min"], ex["rep_max"])
+        rex = None
+        if routine:
+            tids = exercise_tids(ex, tmap)
+            rex = next((e for e in routine.get("exercises", []) if e.get("exercise_template_id") in tids), None)
+            if rex:
+                matched.add(rex.get("exercise_template_id"))
         if ex.get("suspended"):
+            if rex:
+                diffs.append("%s è sospeso ma è ancora nella routine" % ex["name"])
             start = start_loads(ex)
             again = " (se lo reintroduci: %dx%s da %s)" % (ex["sets"], reps, fmt_loads(start, ex.get("unit"))) if start else ""
             lines.append("- %s — SOSPESO %s%s" % (ex["name"], ex["suspended"], again))
             continue
         hist = history_for(ex, classified, scheda)
         load, goal, last, is_new = suggest(ex, hist, ph, factor, version_dt)
+        n_sets = ex["sets"]
+        rl = routine_loads(ex, rex) if rex else []
+        if rl:
+            r_load, r_goal, r_last, r_new = suggest_from_routine(ex, hist, ph, factor, rl)
+            if r_load != load or len(rl) != n_sets:
+                diffs.append("%s %dx %s (scheda %dx %s)" % (ex["name"], len(rl), r_load, n_sets, load))
+            load, goal, last, is_new = r_load, r_goal, r_last, r_new
+            n_sets = len(rl)
+        elif routine:
+            diffs.append("%s manca nella routine" % ex["name"])
         if ex.get("per_leg"):
             reps += " per gamba"
-        line = "- %s — %dx%s — %s" % (ex["name"], ex["sets"], reps, load)
+        line = "- %s — %dx%s — %s" % (ex["name"], n_sets, reps, load)
         extra = [x for x in (goal, last) if x]
         if extra:
             line += " (" + "; ".join(extra) + ")"
@@ -532,10 +649,19 @@ def session_block(name, classified, scheda, today, ph):
             new_ex.append(ex["name"])
         if not ex.get("hevy_titles"):
             no_title.append(ex["name"])
-    return lines, new_ex, no_title
+    if routine:
+        it_title = {}
+        for w, _l in classified:
+            for e in w.get("exercises", []):
+                it_title.setdefault(e.get("exercise_template_id"), e.get("title"))
+        for e in routine.get("exercises", []):
+            tid = e.get("exercise_template_id")
+            if tid not in matched:
+                diffs.append("%s è nella routine ma non in scheda" % it_title.get(tid, e.get("title")))
+    return lines, new_ex, no_title, diffs
 
 
-def build_message(classified, scheda, today):
+def build_message(classified, scheda, today, routines=None):
     ph = phase(scheda, today)
     plan = plan_day(classified, scheda, today)
     date_txt = "%s %s" % (WEEKDAYS[today.weekday()], today.strftime("%d/%m/%Y"))
@@ -578,8 +704,10 @@ def build_message(classified, scheda, today):
         if plan.get("rested_before") and plan["last"][0] == scheda["rest_after"]:
             notes.append("Riposo già fatto prima del %s (allenamento precedente: %s)." % (
                 plan["last"][0], plan["rested_before"].strftime("%d/%m")))
-        lines, new_ex, no_title = session_block(name, classified, scheda, today, ph)
+        lines, new_ex, no_title, diffs = session_block(name, classified, scheda, today, ph, routines)
         out.extend(lines)
+        if diffs:
+            notes.append("Differenze con la routine Hevy (vale Hevy): " + "; ".join(diffs) + ".")
         if new_ex:
             notes.append("Nuovi esercizi (senza storico): " + ", ".join(new_ex) + ".")
         if no_title:
@@ -622,7 +750,13 @@ def main(argv=None):
         else:
             workouts = fetch_workouts()
         classified = classify(workouts, scheda)
-        msg = build_message(classified, scheda, today)
+        routines = None
+        if not args.fixture:
+            try:
+                routines = fetch_routines()
+            except FetchError as e:
+                print("AVVISO: routine Hevy non lette (%s): uso solo la scheda" % e, file=sys.stderr)
+        msg = build_message(classified, scheda, today, routines)
         if args.dry_run:
             print(msg)
             print("\n[dry run: %d caratteri, non inviato]" % len(msg))

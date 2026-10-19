@@ -334,6 +334,90 @@ class TestMessage(unittest.TestCase):
         self.assertNotIn("Camminata,", m)
 
 
+def wkt(start, exercises, title="x"):
+    """Allenamento con codici esercizio Hevy (necessari per il confronto con le routine)."""
+    return {"title": title, "start_time": start,
+            "exercises": [{"title": n, "exercise_template_id": tid, "sets": ss} for n, tid, ss in exercises]}
+
+
+def routine(title, exercises):
+    return {"title": title, "exercises": [{"title": n, "exercise_template_id": tid, "sets": ss} for n, tid, ss in exercises]}
+
+
+class TestRoutines(unittest.TestCase):
+    """Routine Hevy inventate: nomi inglesi, collegate agli allenamenti dal codice esercizio."""
+    W = s(5, 5, "warmup")
+
+    def block(self, workouts, routines, session="Upper A", today=D(2026, 10, 21), ph="normal"):
+        cl = morning.classify(workouts, SCHEDA)
+        return morning.session_block(session, cl, SCHEDA, today, ph, routines)
+
+    def test_routine_load_wins_and_difference_is_reported(self):
+        ws = [wkt("2026-10-11T10:00:00Z", [("Chest Press (Macchina)", "T1", [s(17.5, 12)] * 3)])]
+        rt = [routine("Giorno 1 - Upper A - Petto", [("Chest Press (Machine)", "T1", [self.W] + [s(20, 12)] * 3)])]
+        lines, _, _, diffs = self.block(ws, rt)
+        self.assertIn("Chest Press (Macchina) — 3x10-12 — 20 kg", lines[0])
+        self.assertIn("Chest Press (Macchina) 3x 20 kg (scheda 3x 17,5 kg)", diffs)
+        self.assertIn("Pushdown Tricipiti con Corda manca nella routine", diffs)
+
+    def test_progression_on_top_of_routine_load(self):
+        a = [("Trazione verticale (macchina)", "T2", [s(30, 12)] * 4)]
+        ws = [wkt("2026-10-20T10:00:00Z", a), wkt("2026-10-23T10:00:00Z", a)]
+        rt = [routine("Giorno 3 - Upper B", [("Vertical Traction (Machine)", "T2", [self.W] + [s(30, 12)] * 4)])]
+        lines, _, _, diffs = self.block(ws, rt, "Upper B", D(2026, 10, 24))
+        self.assertIn("Trazione verticale (macchina) — 4x10-12 — 32,5 kg (+2,5 kg: 2 sedute al tetto", lines[0])
+        self.assertFalse([d for d in diffs if d.startswith("Trazione")])  # stesso risultato della scheda
+
+    def test_no_progression_if_done_below_routine_load(self):
+        a = [("Trazione verticale (macchina)", "T2", [s(27.5, 12)] * 4)]
+        ws = [wkt("2026-10-20T10:00:00Z", a), wkt("2026-10-23T10:00:00Z", a)]
+        rt = [routine("Giorno 3 - Upper B", [("Vertical Traction (Machine)", "T2", [s(30, 12)] * 4)])]
+        lines, _, _, _ = self.block(ws, rt, "Upper B", D(2026, 10, 24))
+        self.assertIn("— 30 kg (stesso carico, +1-2 rip", lines[0])
+
+    def test_routine_sets_count_wins(self):
+        ws = [wkt("2026-10-16T10:00:00Z", [("Face Pull", "T3", [s(10, 15)] * 3)])]
+        rt = [routine("Giorno 4 - Upper C", [("Face Pull", "T3", [s(10, 15)] * 2)])]
+        lines, _, _, diffs = self.block(ws, rt, "Upper C")
+        self.assertTrue(any(l.startswith("- Face Pull — 2x12-15 — 10 kg") for l in lines))
+        self.assertTrue(any(d.startswith("Face Pull 2x 10 kg (scheda 3x") for d in diffs))
+
+    def test_extra_and_suspended_exercises_reported(self):
+        ws = [wkt("2026-10-16T10:00:00Z", [("Lento in Avanti Seduto (Macchina)", "T4", [s(15, 12)] * 3),
+                                           ("Rematore Verticale (Bilanciere)", "T5", [s(15, 12)] * 3)])]
+        rt = [routine("Giorno 4 - Upper C", [("Seated Shoulder Press (Machine)", "T4", [s(15, 12)] * 3),
+                                              ("Upright Row (Barbell)", "T5", [s(15, 12)] * 3)])]
+        _, _, _, diffs = self.block(ws, rt, "Upper C")
+        self.assertIn("Lento in Avanti Seduto (Macchina) è sospeso ma è ancora nella routine", diffs)
+        self.assertIn("Rematore Verticale (Bilanciere) è nella routine ma non in scheda", diffs)
+
+    def test_dumbbell_total_and_per_leg_in_routine(self):
+        ws = [wkt("2026-10-19T10:00:00Z", [("Step Up Manubrio", "T6", [s(14, 12)] * 6)])]
+        rt = [routine("Giorno 5 - Lower B", [("Dumbbell Step Up", "T6", [s(10, 10, "warmup")] * 2 + [s(14, 12)] * 6)])]
+        lines, _, _, _ = self.block(ws, rt, "Lower B")
+        line = [l for l in lines if l.startswith("- Step Up")][0]
+        self.assertIn("— 3x10-12 per gamba — 7 kg per mano (in Hevy 14 kg totali)", line)
+
+    def test_deload_applies_to_routine_load(self):
+        ws = [wkt("2026-10-22T10:00:00Z", [("Chest Press (Macchina)", "T1", [s(20, 12)] * 3)])]
+        rt = [routine("Giorno 1 - Upper A", [("Chest Press (Machine)", "T1", [s(20, 12)] * 3)])]
+        lines, _, _, _ = self.block(ws, rt, today=D(2026, 10, 28), ph="deload")
+        self.assertIn("— 17,5 kg (scarico, RPE 6", lines[0])
+
+    def test_without_routines_scheda_only(self):
+        ws = [wkt("2026-10-11T10:00:00Z", [("Chest Press (Macchina)", "T1", [s(17.5, 12)] * 3)])]
+        lines, _, _, diffs = self.block(ws, None)
+        self.assertIn("— 17,5 kg", lines[0])
+        self.assertEqual(diffs, [])
+
+    def test_message_note(self):
+        ws = [wkt("2026-10-19T10:00:00Z", [("Hip Thrust (macchina)", "T7", [s(35, 12)] * 4)])]
+        rt = [routine("Giorno 1 - Upper A", [("Chest Press (Machine)", "T1", [s(20, 12)] * 3)])]
+        m = morning.build_message(morning.classify(ws, SCHEDA), SCHEDA, D(2026, 10, 21), rt)
+        self.assertIn("Differenze con la routine Hevy (vale Hevy):", m)
+        self.assertLess(len(m), 3500)
+
+
 class TestSafety(unittest.TestCase):
     def test_host_allowlist(self):
         with self.assertRaises(morning.FetchError):
@@ -345,6 +429,7 @@ class TestSafety(unittest.TestCase):
         for verb in ('method="PUT"', 'method="DELETE"', 'method="PATCH"'):
             self.assertNotIn(verb, src)
         hevy_fn = src.split("def hevy_get")[1].split("def fetch_workouts")[0]
+        self.assertNotIn("data=", src.split("def fetch_routines")[1].split("def telegram_send")[0])
         self.assertIn('method="GET"', hevy_fn)
         self.assertNotIn("data=", hevy_fn)
 
