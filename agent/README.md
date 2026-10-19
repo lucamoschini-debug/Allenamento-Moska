@@ -31,11 +31,13 @@ Variabili d'ambiente: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`. La chiave Hevy �
 - **Nuova scheda**: per ogni esercizio, la prima seduta dopo `version_datetime` usa il carico di partenza della scheda (se numerico); dalla seduta successiva vale la regola di progressione.
 - **Senza storico**: `start_load` numerico → "partenza X, poi tara a RPE 7-8"; "da definire" → testo di taratura.
 - **Unità**: `kg totali`, `kg per mano`, `kg di dischi` (Multipower: solo dischi, mostrato anche per lato), `kg per mano, totale in Hevy` (Stacco rumeno e Step-up: dal `hevy_total_from` in Hevy si segna il totale dei due manubri; lo storico viene diviso per due).
-- **Ciclo**: 26/10-01/11 scarico (-10% arrotondato al gradino, RPE 6, nessuna progressione); dopo il 01/11 "ciclo concluso", carichi mantenuti.
+- **Ciclo**: settimane in `scheda.json` → `cycle.weeks` (S3-S8, 19/10-29/11). Settimane di scarico (S4, S8): -10% arrotondato al gradino, RPE 6, nessuna progressione. S6: stessi carichi, solo ripetizioni. Dopo uno scarico si riparte dai carichi di prima (le sedute di scarico non contano per lo storico). Dopo il 29/11 "ciclo concluso", carichi mantenuti.
+- **Esercizi sospesi**: `suspended` (es. Lento in Avanti) compare come "SOSPESO" con il carico di ripartenza; `progression_suspended` (Chest Press) mantiene il carico.
+- **Sedute saltate**: se dopo la seduta che precede X nella rotazione ne è stata fatta un'altra e X non è stata fatta dopo, il messaggio lo segnala nelle note.
 - **Giorni di riposo**: messaggio breve con la seduta di domani e "Core o Mobilità e cervicale, se hai tempo". Il core non è legato alle sedute.
 - **Camminate**: il Cammino è in pausa, il messaggio non contiene camminate. Le voci "Camminata" registrate in Hevy sono ignorate.
 
 ## File
 
-- `scheda.json` – scheda v14 (20261017-2310; carichi di partenza dalla v12): nomi degli esercizi come in Hevy (italiano), rotazione, ciclo, note.
+- `scheda.json` – scheda v15 (20261019-2330): nomi degli esercizi come in Hevy (italiano), rotazione, ciclo, note.
 - `tests/` – test e fixture con dati **inventati** (`make_fixture.py` la rigenera).

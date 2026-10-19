@@ -1,8 +1,8 @@
 {
-  "version": "v14",
-  "version_id": "20261017-2310",
-  "version_datetime": "2026-10-11T23:20:00+02:00",
-  "version_rule": "Carichi di partenza introdotti con la v12 (20261011-2320): per ogni esercizio, la prima seduta dopo version_datetime usa start_load (se numerico); poi vale la regola di progressione. La v14 non azzera i carichi.",
+  "version": "v15",
+  "version_id": "20261019-2330",
+  "version_datetime": "2026-10-19T23:30:00+02:00",
+  "version_rule": "Per ogni esercizio, la prima seduta dopo version_datetime usa start_load (se numerico); poi vale la regola di progressione.",
   "timezone": "Europe/Rome",
   "rotation": [
     "Upper A",
@@ -15,26 +15,72 @@
   "ignore_titles": [
     "Camminata"
   ],
+  "ignore_workout_titles_starting_with": [
+    "Core"
+  ],
   "cycle": {
-    "deload_start": "2026-10-26",
-    "deload_end": "2026-11-01",
+    "start": "2026-10-19",
+    "end_date": "2026-11-29",
     "deload_factor": 0.9,
-    "deload_note": "Settimana di scarico (26/10-01/11): carichi -10% oppure una serie in meno, RPE 6. Mai alzare i carichi per compensare serie in meno.",
-    "end_date": "2026-11-01",
-    "end_note": "Ciclo concluso: serve la nuova scheda. Carichi mantenuti, nessuna progressione."
+    "deload_note": "Settimana di scarico: carichi -10% oppure una serie in meno, RPE 6. Mai alzare i carichi per compensare serie in meno.",
+    "end_note": "Ciclo concluso: serve la nuova scheda (datata dal 30/11). Carichi mantenuti, nessuna progressione.",
+    "weeks": [
+      {
+        "code": "S3",
+        "start": "2026-10-19",
+        "end": "2026-10-25",
+        "focus": "Carichi, spalla leggera",
+        "type": "normal"
+      },
+      {
+        "code": "S4",
+        "start": "2026-10-26",
+        "end": "2026-11-01",
+        "focus": "Scarico",
+        "type": "deload"
+      },
+      {
+        "code": "S5",
+        "start": "2026-11-02",
+        "end": "2026-11-08",
+        "focus": "Ripartenza: carichi di prima dello scarico",
+        "type": "normal"
+      },
+      {
+        "code": "S6",
+        "start": "2026-11-09",
+        "end": "2026-11-15",
+        "focus": "Ripetizioni: stessi carichi, +1-2 rip per serie fino al tetto",
+        "type": "no_progression"
+      },
+      {
+        "code": "S7",
+        "start": "2026-11-16",
+        "end": "2026-11-22",
+        "focus": "Carichi: +1 gradino sugli esercizi al tetto per 2 sedute",
+        "type": "normal"
+      },
+      {
+        "code": "S8",
+        "start": "2026-11-23",
+        "end": "2026-11-29",
+        "focus": "Scarico",
+        "type": "deload"
+      }
+    ]
   },
   "rest_day_line": "Core o Mobilità e cervicale, se hai tempo.",
   "general_notes": {
-    "upper": "Spalla: se il fastidio torna, taglia prima il Lento in Avanti Seduto, poi l'Estensione sopra la testa.",
+    "upper": "Spalla: niente movimenti sopra la testa e nessun carico oltre la scheda finché il fisioterapista non dà indicazioni.",
     "lower": "Schiena neutra, niente flessione del busto sotto carico.",
     "always": "Dolore acuto, notturno o persistente: fisioterapista."
   },
   "sessions": {
     "Upper A": {
-      "duration": "circa 68-72 min",
+      "duration": "circa 62-68 min",
       "legacy_titles": [
-        "Pushdown Tricipiti con Corda",
-        "Panca Piana (Manubrio)"
+        "Panca Piana (Manubrio)",
+        "Estensione Tricipiti Sopra la Testa (Cavo)"
       ],
       "exercises": [
         {
@@ -42,13 +88,14 @@
           "hevy_titles": [
             "Chest Press (Macchina)"
           ],
-          "sets": 4,
+          "sets": 3,
           "rep_min": 10,
           "rep_max": 12,
-          "start_load": 20,
+          "start_load": 17.5,
           "step_kg": 2.5,
           "unit": "kg totali",
-          "notes": ""
+          "notes": "progressione sospesa finché la spalla non è ok",
+          "progression_suspended": true
         },
         {
           "name": "Panca Inclinata (Multipower)",
@@ -61,7 +108,7 @@
           "start_load": 15,
           "step_kg": 2.5,
           "unit": "kg di dischi",
-          "notes": "solo dischi, barra esclusa"
+          "notes": "angolo circa 30°, discesa non profonda; solo dischi"
         },
         {
           "name": "Croci (Manubrio)",
@@ -74,7 +121,7 @@
           "start_load": 7,
           "step_kg": 1,
           "unit": "kg per mano",
-          "notes": ""
+          "notes": "scendi solo fino all'altezza del petto"
         },
         {
           "name": "Pushdown Tricipiti",
@@ -87,20 +134,20 @@
           "start_load": 10,
           "step_kg": 2.5,
           "unit": "kg totali",
-          "notes": "alterna presa dritta/inversa"
+          "notes": "presa dritta/inversa alternata"
         },
         {
-          "name": "Estensione Tricipiti Sopra la Testa (Cavo)",
+          "name": "Pushdown Tricipiti con Corda",
           "hevy_titles": [
-            "Estensione Tricipiti Sopra la Testa (Cavo)"
+            "Pushdown Tricipiti con Corda"
           ],
           "sets": 3,
           "rep_min": 12,
           "rep_max": 15,
-          "start_load": "da definire",
+          "start_load": 7.5,
           "step_kg": 2.5,
           "unit": "kg totali",
-          "notes": "se la spalla non ama il sopra la testa: Pushdown con Corda"
+          "notes": ""
         },
         {
           "name": "Alzate Laterali (Macchina)",
@@ -113,7 +160,7 @@
           "start_load": 12.5,
           "step_kg": 2.5,
           "unit": "kg totali",
-          "notes": ""
+          "notes": "non oltre l'altezza delle spalle; se infastidisce, 10 kg"
         }
       ]
     },
@@ -157,7 +204,7 @@
           ],
           "step_kg": 2.5,
           "unit": "kg totali",
-          "notes": "sedile pos. 3"
+          "notes": "sedile pos. 3, fase positiva lenta"
         },
         {
           "name": "Leg Curl Seduto (Macchina)",
@@ -198,10 +245,10 @@
           "sets": 3,
           "rep_min": 12,
           "rep_max": 15,
-          "start_load": "da definire",
+          "start_load": "corpo libero",
           "step_kg": null,
           "unit": "kg totali",
-          "notes": ""
+          "notes": "quando tutte le serie arrivano a 15, aggiungi carico"
         }
       ]
     },
@@ -264,7 +311,7 @@
           "start_load": "da definire",
           "step_kg": 2.5,
           "unit": "kg totali",
-          "notes": "circa 10 kg; al posto del Pullover (spalla), gomito vicino al corpo"
+          "notes": "cavo basso, presa neutra, parti da circa 10 kg; gomito vicino al corpo"
         },
         {
           "name": "Curl Bicipiti (Manubrio)",
@@ -274,11 +321,7 @@
           "sets": 3,
           "rep_min": 10,
           "rep_max": 12,
-          "start_load": [
-            8,
-            8,
-            8
-          ],
+          "start_load": 8,
           "step_kg": 1,
           "unit": "kg per mano",
           "notes": ""
@@ -291,7 +334,7 @@
           "sets": 3,
           "rep_min": 10,
           "rep_max": 12,
-          "start_load": 10,
+          "start_load": 12.5,
           "step_kg": 2.5,
           "unit": "kg totali",
           "notes": ""
@@ -299,21 +342,24 @@
       ]
     },
     "Upper C": {
-      "duration": "circa 65-70 min",
-      "legacy_titles": [],
+      "duration": "circa 60-67 min",
+      "legacy_titles": [
+        "Rematore Verticale (Bilanciere)"
+      ],
       "exercises": [
         {
           "name": "Lento in Avanti Seduto (Macchina)",
           "hevy_titles": [
             "Lento in Avanti Seduto (Macchina)"
           ],
-          "sets": 4,
+          "sets": 3,
           "rep_min": 10,
           "rep_max": 12,
-          "start_load": 5,
+          "start_load": 15,
           "step_kg": 2.5,
           "unit": "kg totali",
-          "notes": ""
+          "notes": "",
+          "suspended": "fino alla visita dal fisioterapista"
         },
         {
           "name": "Panca Inclinata (Manubrio), 30°",
@@ -323,10 +369,10 @@
           "sets": 3,
           "rep_min": 10,
           "rep_max": 12,
-          "start_load": "da definire",
+          "start_load": 7,
           "step_kg": 1,
           "unit": "kg per mano",
-          "notes": "parti da 6-7 kg"
+          "notes": ""
         },
         {
           "name": "Croci (Macchina)",
@@ -336,10 +382,10 @@
           "sets": 3,
           "rep_min": 12,
           "rep_max": 15,
-          "start_load": 7.5,
+          "start_load": 10,
           "step_kg": 2.5,
           "unit": "kg totali",
-          "notes": ""
+          "notes": "ampiezza controllata"
         },
         {
           "name": "Tirata verticale a presa neutra",
@@ -352,20 +398,7 @@
           "start_load": "da definire",
           "step_kg": 2.5,
           "unit": "kg totali",
-          "notes": ""
-        },
-        {
-          "name": "Rematore Verticale (Bilanciere)",
-          "hevy_titles": [
-            "Rematore Verticale (Bilanciere)"
-          ],
-          "sets": 3,
-          "rep_min": 10,
-          "rep_max": 12,
-          "start_load": 15,
-          "step_kg": 2.5,
-          "unit": "kg totali",
-          "notes": "se la spalla dà fastidio, saltalo"
+          "notes": "parti da circa 27,5 kg"
         },
         {
           "name": "Alzate Laterali (Macchina)",
@@ -375,7 +408,11 @@
           "sets": 3,
           "rep_min": 12,
           "rep_max": 15,
-          "start_load": 12.5,
+          "start_load": [
+            10,
+            12.5,
+            12.5
+          ],
           "step_kg": 2.5,
           "unit": "kg totali",
           "notes": ""
@@ -385,13 +422,17 @@
           "hevy_titles": [
             "Face Pull"
           ],
-          "sets": 2,
+          "sets": 3,
           "rep_min": 12,
           "rep_max": 15,
-          "start_load": "da definire",
+          "start_load": [
+            10,
+            12.5,
+            12.5
+          ],
           "step_kg": 2.5,
           "unit": "kg totali",
-          "notes": "se il cavo infastidisce la spalla, toglilo"
+          "notes": ""
         },
         {
           "name": "Croci Inverse Deltoide Posteriore (Macchina)",
@@ -401,7 +442,7 @@
           "sets": 3,
           "rep_min": 12,
           "rep_max": 15,
-          "start_load": 5,
+          "start_load": 7.5,
           "step_kg": 2.5,
           "unit": "kg totali",
           "notes": "leggero, senza cedimento"
@@ -431,7 +472,7 @@
           "hevy_titles": [
             "Hip Thrust (macchina)"
           ],
-          "sets": 3,
+          "sets": 4,
           "rep_min": 10,
           "rep_max": 12,
           "start_load": 35,
@@ -444,10 +485,10 @@
           "hevy_titles": [
             "Leg Curl Sdraiato (Macchina)"
           ],
-          "sets": 3,
+          "sets": 4,
           "rep_min": 12,
           "rep_max": 15,
-          "start_load": 10,
+          "start_load": 12.5,
           "step_kg": 2.5,
           "unit": "kg totali",
           "notes": ""
@@ -458,13 +499,13 @@
             "Step Up Manubrio"
           ],
           "sets": 3,
-          "rep_min": 12,
+          "rep_min": 10,
           "rep_max": 12,
-          "start_load": 5,
+          "start_load": 7,
           "step_kg": 1,
           "unit": "kg per mano, totale in Hevy",
-          "per_leg": true,
           "notes": "",
+          "per_leg": true,
           "hevy_total_from": "2026-10-19"
         },
         {
@@ -475,7 +516,7 @@
           "sets": 3,
           "rep_min": 15,
           "rep_max": 15,
-          "start_load": 20,
+          "start_load": 22.5,
           "step_kg": 2.5,
           "unit": "kg totali",
           "notes": ""
@@ -491,25 +532,22 @@
           "start_load": 20,
           "step_kg": 2.5,
           "unit": "kg totali",
-          "notes": ""
+          "notes": "prima arrivi a 15 su tutte"
         },
         {
           "name": "Calf Raise Seduto",
           "hevy_titles": [
             "Calf Raise Seduto"
           ],
-          "sets": 3,
+          "sets": 4,
           "rep_min": 12,
           "rep_max": 15,
           "start_load": "corpo libero",
           "step_kg": null,
           "unit": "kg totali",
-          "notes": "segna il peso se usi la macchina"
+          "notes": "quando tutte arrivano a 15, aggiungi carico"
         }
       ]
     }
-  },
-  "ignore_workout_titles_starting_with": [
-    "Core"
-  ]
+  }
 }

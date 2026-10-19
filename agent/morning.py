@@ -267,7 +267,9 @@ def history_for(exercise, classified, scheda):
         ws = working_sets(sets)
         if ws:
             hist.append((started.date(), ws, started))
-    return hist
+    # Le sedute di scarico non contano per i carichi: si riparte da quelli di prima.
+    normal = [h for h in hist if not in_deload(scheda, h[0])]
+    return normal or hist
 
 
 def at_top(ws, rep_max):
@@ -324,12 +326,26 @@ def fmt_last(day, ws, per_leg):
     return "ultima volta %s: %dx%s a %s" % (day.strftime("%d/%m"), len(ws), r, l)
 
 
+def week_of(scheda, day):
+    """Settimana del ciclo che contiene il giorno, o None."""
+    for wk in scheda["cycle"].get("weeks", []):
+        if dt.date.fromisoformat(wk["start"]) <= day <= dt.date.fromisoformat(wk["end"]):
+            return wk
+    return None
+
+
+def in_deload(scheda, day):
+    wk = week_of(scheda, day)
+    return bool(wk) and wk["type"] == "deload"
+
+
 def phase(scheda, day):
-    c = scheda["cycle"]
-    if dt.date.fromisoformat(c["deload_start"]) <= day <= dt.date.fromisoformat(c["deload_end"]):
-        return "deload"
-    if day > dt.date.fromisoformat(c["end_date"]):
+    """"deload", "no_progression", "ended" oppure "normal"."""
+    if day > dt.date.fromisoformat(scheda["cycle"]["end_date"]):
         return "ended"
+    wk = week_of(scheda, day)
+    if wk and wk["type"] in ("deload", "no_progression"):
+        return wk["type"]
     return "normal"
 
 
@@ -398,6 +414,10 @@ def suggest(exercise, history, ph, factor, version_dt=None):
         return fmt_loads(loads, unit), "scarico, RPE 6", last_txt, False
     if ph == "ended":
         return fmt_loads(loads, unit), "stesso carico", last_txt, False
+    if exercise.get("progression_suspended"):
+        return fmt_loads(loads, unit), "stesso carico, progressione sospesa", last_txt, False
+    if ph == "no_progression":
+        return fmt_loads(loads, unit), "settimana di ripetizioni: stesso carico, +1-2 rip per serie fino a %d" % rmax, last_txt, False
 
     top_now = at_top(last_ws, rmax)
     # Si sale solo se anche la seduta precedente era al tetto con almeno gli stessi carichi.
@@ -446,6 +466,26 @@ def plan_day(classified, scheda, today):
     return info
 
 
+def skipped_sessions(classified, scheda):
+    """Sedute saltate nella rotazione: dopo l'ultima volta della seduta che le
+    precede è stata fatta un'altra seduta, e loro non sono state fatte dopo.
+    Ritorna [(seduta, data dell'ultima volta o None)]."""
+    rec = [(to_rome(w["start_time"]).date(), l) for w, l in classified if l]
+    rot = scheda["rotation"]
+    out = []
+    for name in rot:
+        prev = rot[(rot.index(name) - 1) % len(rot)]
+        idx = [i for i, (_d, l) in enumerate(rec) if l == prev]
+        if not idx or idx[-1] + 1 >= len(rec):
+            continue
+        i = idx[-1]
+        if any(l == name for _d, l in rec[i + 1:]):
+            continue
+        done = [d for d, l in rec if l == name]
+        out.append((name, done[-1] if done else None))
+    return out
+
+
 def unrecognized(classified, scheda, today, days=14):
     known = known_titles(scheda)
     seen = []
@@ -465,9 +505,14 @@ def session_block(name, classified, scheda, today, ph):
     lines = []
     new_ex, no_title = [], []
     for ex in s["exercises"]:
+        reps = "%d" % ex["rep_min"] if ex["rep_min"] == ex["rep_max"] else "%d-%d" % (ex["rep_min"], ex["rep_max"])
+        if ex.get("suspended"):
+            start = start_loads(ex)
+            again = " (se lo reintroduci: %dx%s da %s)" % (ex["sets"], reps, fmt_loads(start, ex.get("unit"))) if start else ""
+            lines.append("- %s — SOSPESO %s%s" % (ex["name"], ex["suspended"], again))
+            continue
         hist = history_for(ex, classified, scheda)
         load, goal, last, is_new = suggest(ex, hist, ph, factor, version_dt)
-        reps = "%d" % ex["rep_min"] if ex["rep_min"] == ex["rep_max"] else "%d-%d" % (ex["rep_min"], ex["rep_max"])
         if ex.get("per_leg"):
             reps += " per gamba"
         line = "- %s — %dx%s — %s" % (ex["name"], ex["sets"], reps, load)
@@ -492,10 +537,18 @@ def build_message(classified, scheda, today):
     notes = []
     gn = scheda["general_notes"]
 
+    wk = week_of(scheda, today)
+    if ph == "ended":
+        notes.append(scheda["cycle"]["end_note"])
+    elif wk:
+        notes.append("Settimana %s (%s-%s): %s." % (
+            wk["code"], dt.date.fromisoformat(wk["start"]).strftime("%d/%m"),
+            dt.date.fromisoformat(wk["end"]).strftime("%d/%m"), wk["focus"]))
     if ph == "deload":
         notes.append(scheda["cycle"]["deload_note"])
-    elif ph == "ended":
-        notes.append(scheda["cycle"]["end_note"])
+    for name, last in skipped_sessions(classified, scheda):
+        when = "ultima volta %s" % last.strftime("%d/%m") if last else "mai registrata"
+        notes.append("Seduta saltata nella rotazione: %s (%s)." % (name, when))
 
     if plan["mode"] in ("rest", "done"):
         if plan["mode"] == "rest":
