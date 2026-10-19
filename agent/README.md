@@ -23,11 +23,11 @@ Variabili d'ambiente: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`. La chiave Hevy �
 
 ## Regole
 
-- **Riconoscimento seduta**: dagli esercizi registrati (titoli Hevy della scheda, legacy compresi), non dal titolo dell'allenamento. A parità di punteggio vince la seduta attesa in rotazione. "Camminata" è ignorata. Orari UTC convertiti in Europe/Rome.
+- **Riconoscimento seduta**: dagli esercizi registrati (titoli Hevy della scheda, legacy compresi), non dal titolo dell'allenamento. A parità di punteggio vince la seduta attesa in rotazione. "Camminata" è ignorata, e così gli allenamenti il cui titolo inizia con "Core". Orari UTC convertiti in Europe/Rome.
 - **Rotazione**: Upper A → Lower A → Upper B → Upper C → Lower B → 1-2 giorni di riposo. Dopo Lower B di ieri/oggi: riposo consigliato e seduta di domani. Allenamento già registrato oggi: lo dice e indica la successiva.
 - **Serie di lavoro**: escluse le warmup; se nessuna è marcata e la prima ha carico < 85% di tutte le altre, è riscaldamento. failure e dropset contano. Step-up: due righe consecutive (una per gamba) = una serie.
 - **Storico**: per i carichi si usano solo gli `hevy_titles` dell'esercizio, non i legacy. Se l'esercizio compare in più sedute (es. Deltoid Machine, Calf Raise Seduto), vale l'ultima esecuzione.
-- **Progressione**: tutte le serie di lavoro al tetto (`rep_max`) nelle ultime due esecuzioni → +`step_kg`; altrimenti stesso carico e +1-2 ripetizioni. Carichi per serie mantenuti (es. Leg Press 50/50/50/60).
+- **Progressione**: tutte le serie di lavoro al tetto (`rep_max`) nelle ultime due esecuzioni, con la precedente ad almeno gli stessi carichi → +`step_kg`; altrimenti stesso carico e +1-2 ripetizioni. Carichi per serie mantenuti (es. Leg Press 50/50/50/60).
 - **Nuova scheda**: per ogni esercizio, la prima seduta dopo `version_datetime` usa il carico di partenza della scheda (se numerico); dalla seduta successiva vale la regola di progressione.
 - **Senza storico**: `start_load` numerico → "partenza X, poi tara a RPE 7-8"; "da definire" → testo di taratura.
 - **Unità**: `kg totali`, `kg per mano`, `kg di dischi` (Multipower: solo dischi, mostrato anche per lato).
@@ -37,5 +37,5 @@ Variabili d'ambiente: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`. La chiave Hevy �
 
 ## File
 
-- `scheda.json` – scheda v12 (20261011-2320): nomi degli esercizi come in Hevy (italiano), rotazione, ciclo, note.
+- `scheda.json` – scheda v14 (20261017-2310; carichi di partenza dalla v12): nomi degli esercizi come in Hevy (italiano), rotazione, ciclo, note.
 - `tests/` – test e fixture con dati **inventati** (`make_fixture.py` la rigenera).

@@ -186,6 +186,8 @@ def classify(workouts, scheda):
     rot = scheda["rotation"]
     result = []
     prev = None
+    skip = [norm(t) for t in scheda.get("ignore_workout_titles_starting_with", [])]
+    workouts = [w for w in workouts if not any(norm(w.get("title")).startswith(k) for k in skip)]
     for w in sorted(workouts, key=lambda w: w["start_time"]):
         titles = set(norm(t) for t in workout_titles(w, scheda))
         scores = {name: len(titles & st[name]) for name in rot}
@@ -391,7 +393,13 @@ def suggest(exercise, history, ph, factor, version_dt=None):
         return fmt_loads(loads, unit), "stesso carico", last_txt, False
 
     top_now = at_top(last_ws, rmax)
-    top_prev = len(history) >= 2 and at_top(history[1][1], rmax)
+    # Si sale solo se anche la seduta precedente era al tetto con almeno gli stessi carichi.
+    top_prev = False
+    if len(history) >= 2 and at_top(history[1][1], rmax):
+        prev_loads = [_w(s) for s in history[1][1]][:n_sets]
+        while len(prev_loads) < n_sets:
+            prev_loads.append(prev_loads[-1])
+        top_prev = all(p >= c for p, c in zip(prev_loads, loads))
     if top_now and top_prev:
         if step and not all(l == 0 for l in loads):
             loads = [l + step for l in loads]

@@ -29,7 +29,7 @@ def ex_cfg(session, name):
 
 UPPER_A = [("Chest Press (Macchina)", [s(20, 12)] * 4), ("Croci (Macchina)", [s(5, 12)] * 3)]
 LOWER_A = [("Leg Press Orizzontale (Macchina)", [s(40, 10)] * 4), ("Leg Extension (Macchina)", [s(10, 12)] * 3)]
-UPPER_B = [("Trazione verticale (macchina)", [s(25, 12)] * 4), ("Pullover (Manubrio)", [s(9, 12)] * 3)]
+UPPER_B = [("Trazione verticale (macchina)", [s(25, 12)] * 4), ("Curl Bicipiti (Manubrio)", [s(9, 12)] * 3)]
 UPPER_C = [("Alzate Laterali (Macchina)", [s(10, 12)] * 3), ("Macchina Spalle Ignota", [s(5, 10)] * 4)]
 LOWER_B = [("Hip Thrust (macchina)", [s(30, 12)] * 3), ("Step Up Manubrio", [s(3, 10)] * 6)]
 
@@ -55,6 +55,14 @@ class TestClassify(unittest.TestCase):
     def test_upper_c_tie_uses_rotation(self):
         ws = [wk("2026-09-01T10:00:00Z", UPPER_B), wk("2026-09-02T10:00:00Z", UPPER_C)]
         self.assertEqual([l for _, l in morning.classify(ws, SCHEDA)], ["Upper B", "Upper C"])
+
+    def test_core_workout_ignored(self):
+        ws = [wk("2026-09-01T10:00:00Z", UPPER_A), wk("2026-09-02T10:00:00Z", [("Dead Bug", [s(None, 8)])], title="Core Completo")]
+        cl = morning.classify(ws, SCHEDA)
+        self.assertEqual([l for _, l in cl], ["Upper A"])
+        self.assertNotIn("Dead Bug", morning.build_message(cl, SCHEDA, D(2026, 9, 3)))
+        ws = [wk("2026-09-01T10:00:00Z", LOWER_A, title="Giorno 2 - Lower A - Quadricipiti e Core")]
+        self.assertEqual(morning.classify(ws, SCHEDA)[0][1], "Lower A")
 
     def test_walk_only_ignored(self):
         ws = [wk("2026-09-01T10:00:00Z", [("Camminata", [{"type": "normal", "distance_meters": 900}])])]
@@ -112,7 +120,12 @@ class TestSuggest(unittest.TestCase):
     def test_progress_after_two_sessions_at_top(self):
         ws = [wk("2026-09-01T10:00:00Z", UPPER_B), wk("2026-09-05T10:00:00Z", UPPER_B)]
         self.assertTrue(self.sug("Upper B", "Trazione verticale (macchina)", ws)[0].startswith("27,5 kg"))
-        self.assertEqual(self.sug("Upper B", "Pullover (Manubrio)", ws)[0], "10 kg")
+        self.assertEqual(self.sug("Upper B", "Curl Bicipiti (Manubrio)", ws)[0], "10 kg per mano")
+
+    def test_no_progress_if_load_changed(self):
+        ws = [wk("2026-09-01T10:00:00Z", [("Rematore Seduto (Macchina)", [s(12.5, 12)] * 3)]),
+              wk("2026-09-05T10:00:00Z", [("Rematore Seduto (Macchina)", [s(12.5, 12), s(12.5, 12), s(15, 12)])])]
+        self.assertEqual(self.sug("Upper B", "Rematore Seduto (Macchina)", ws)[0], "12,5/12,5/15 kg")
 
     def test_one_session_at_top_keeps_load(self):
         load, goal, _, _ = self.sug("Upper B", "Trazione verticale (macchina)", [wk("2026-09-01T10:00:00Z", UPPER_B)])
@@ -145,14 +158,14 @@ class TestSuggest(unittest.TestCase):
         self.assertEqual(self.sug("Upper B", "Trazione verticale (macchina)", ws, today=D(2026, 11, 3))[0], "25 kg")
 
     def test_new_scheda_start_load_wins_once(self):
-        cfg = ex_cfg("Upper B", "Pullover (Manubrio)")
+        cfg = ex_cfg("Upper B", "Curl Bicipiti (Manubrio)")
         vdt = morning.dt.datetime.fromisoformat("2026-10-11T23:20:00+02:00")
         old = [wk("2026-10-04T10:00:00Z", UPPER_B), wk("2026-10-09T10:00:00Z", UPPER_B)]
         hist = morning.history_for(cfg, morning.classify(old, SCHEDA), SCHEDA)
-        self.assertEqual(morning.suggest(cfg, hist, "normal", 0.9, vdt)[0], "12 kg")  # Excel, non 10
+        self.assertEqual(morning.suggest(cfg, hist, "normal", 0.9, vdt)[0], "8 kg per mano")  # Excel, non 10
         new = old + [wk("2026-10-15T10:00:00Z", UPPER_B)]
         hist = morning.history_for(cfg, morning.classify(new, SCHEDA), SCHEDA)
-        self.assertEqual(morning.suggest(cfg, hist, "normal", 0.9, vdt)[0], "10 kg")  # poi la regola
+        self.assertEqual(morning.suggest(cfg, hist, "normal", 0.9, vdt)[0], "10 kg per mano")  # poi la regola
 
     def test_plates_unit(self):
         self.assertEqual(morning.fmt_loads([15, 15, 15], "kg di dischi"), "15 kg di dischi (7,5 per lato)")
