@@ -1,2 +1,6 @@
 __pycache__/
 *.pyc
+# export con dati reali: mai nel repository
+*.xlsx
+*.xls
+*.csv

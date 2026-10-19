@@ -425,6 +425,12 @@ class TestRoutines(unittest.TestCase):
 
 
 class TestSafety(unittest.TestCase):
+    def test_export_only_reads_hevy(self):
+        with open(os.path.join(os.path.dirname(HERE), "export_coach.py"), encoding="utf-8") as f:
+            src = f.read()
+        for bad in ("urllib", "requests", "method=", "data=", "telegram"):
+            self.assertNotIn(bad, src)
+
     def test_host_allowlist(self):
         with self.assertRaises(morning.FetchError):
             morning._check_host("https://example.com/x")

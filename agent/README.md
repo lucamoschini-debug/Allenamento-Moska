@@ -38,7 +38,16 @@ Variabili d'ambiente: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`. La chiave Hevy �
 - **Giorni di riposo**: messaggio breve con la seduta di domani e "Core o Mobilità e cervicale, se hai tempo". Il core non è legato alle sedute.
 - **Camminate**: il Cammino è in pausa, il messaggio non contiene camminate. Le voci "Camminata" registrate in Hevy sono ignorate.
 
+## Export per il coach
+
+```
+python agent/export_coach.py <cartella fuori dal repository>
+```
+
+Crea un file Excel con le routine Hevy attuali, lo storico di tutte le serie, un riepilogo per esercizio e data (formule) e le differenze tra scheda e routine. Legge Hevy solo in GET tramite `morning.py`. Il file contiene dati reali: lo script rifiuta una cartella di uscita dentro il repository e `.gitignore` esclude `*.xlsx`. Richiede `openpyxl`.
+
 ## File
 
 - `scheda.json` – scheda v15 (20261019-2330): nomi degli esercizi come in Hevy (italiano), rotazione, ciclo, note.
+- `export_coach.py` – export Excel per il coach (vedi sopra).
 - `tests/` – test e fixture con dati **inventati** (`make_fixture.py` la rigenera).
