@@ -365,7 +365,7 @@ class TestRoutines(unittest.TestCase):
         ws = [wkt("2026-10-20T10:00:00Z", a), wkt("2026-10-23T10:00:00Z", a)]
         rt = [routine("Giorno 3 - Upper B", [("Vertical Traction (Machine)", "T2", [self.W] + [s(30, 12)] * 4)])]
         lines, _, _, diffs = self.block(ws, rt, "Upper B", D(2026, 10, 24))
-        self.assertIn("Trazione verticale (macchina) — 4x10-12 — 32,5 kg (+2,5 kg: 2 sedute al tetto", lines[0])
+        self.assertIn("Trazione verticale (macchina) — 4x10-12 — 32,5 kg (aumento maturo (2 sedute al tetto): porta la routine Hevy a 32,5 kg", lines[0])
         self.assertFalse([d for d in diffs if d.startswith("Trazione")])  # stesso risultato della scheda
 
     def test_no_progression_if_done_below_routine_load(self):
@@ -407,8 +407,41 @@ class TestRoutines(unittest.TestCase):
     def test_template_id_from_scheda_and_taratura_not_a_difference(self):
         rt = [routine("Giorno 3 - Upper B", [("Single Arm Cable Row", "D0C4A899", [s(10, 12)] * 3)])]
         lines, _, _, diffs = self.block([], rt, "Upper B")
-        self.assertTrue(any(l.startswith("- Rematore al Cavo a un Braccio — 3x10-12 — 10 kg") for l in lines))
+        self.assertTrue(any(l.startswith("- Rematore al Cavo a Braccio Singolo — 3x10-12 — 10 kg") for l in lines))
         self.assertFalse([d for d in diffs if "Braccio" in d or "Single Arm" in d])
+
+    def test_routine_updated_no_double_increase(self):
+        old = [("Trazione verticale (macchina)", "T2", [s(30, 12)] * 4)]
+        ws = [wkt("2026-10-20T10:00:00Z", old), wkt("2026-10-23T10:00:00Z", old)]
+        rt = [routine("Giorno 3 - Upper B", [("Vertical Traction (Machine)", "T2", [s(32.5, 12)] * 4)])]
+        lines, _, _, _ = self.block(ws, rt, "Upper B", D(2026, 10, 24))
+        self.assertIn("— 32,5 kg (stesso carico, +1-2 rip", lines[0])
+
+    def test_increase_done_but_routine_not_updated(self):
+        ws = [wkt("2026-10-20T10:00:00Z", [("Trazione verticale (macchina)", "T2", [s(30, 12)] * 4)]),
+              wkt("2026-10-23T10:00:00Z", [("Trazione verticale (macchina)", "T2", [s(32.5, 10)] * 4)])]
+        rt = [routine("Giorno 3 - Upper B", [("Vertical Traction (Machine)", "T2", [s(30, 12)] * 4)])]
+        lines, _, _, _ = self.block(ws, rt, "Upper B", D(2026, 10, 24))
+        self.assertIn("— 32,5 kg (routine Hevy non aggiornata: portala a 32,5 kg", lines[0])
+
+    def test_increase_in_hevy_units_for_dumbbell_totals(self):
+        a = [("Stacco da Terra Rumeno (Manubrio)", "T8", [s(16, 12)] * 3)]
+        ws = [wkt("2026-10-19T10:00:00Z", a), wkt("2026-10-22T10:00:00Z", a)]
+        rt = [routine("Giorno 5 - Lower B", [("Romanian Deadlift (Dumbbell)", "T8", [s(16, 12)] * 3)])]
+        lines, _, _, _ = self.block(ws, rt, "Lower B", D(2026, 10, 24))
+        self.assertIn("9 kg per mano (in Hevy 18 kg totali) (aumento maturo (2 sedute al tetto): porta la routine Hevy a 18 kg", lines[0])
+
+    def test_stale_check_only_within_same_routine(self):
+        # 12,5 kg fatti nell'Upper C non rendono "non aggiornata" la routine Upper A a 10 kg.
+        ws = [wkt("2026-10-20T10:00:00Z", [("Chest Press (Macchina)", "T1", [s(17.5, 12)] * 3),
+                                           ("Alzate Laterali (Macchina)", "T9", [s(10, 12)] * 3)]),
+              wkt("2026-10-24T10:00:00Z", [("Face Pull", "T3", [s(10, 15)] * 3),
+                                           ("Alzate Laterali (Macchina)", "T9", [s(12.5, 12)] * 3)])]
+        rt = [routine("Giorno 1 - Upper A", [("Lateral Raise (Machine)", "T9", [s(10, 12)] * 3)])]
+        lines, _, _, _ = self.block(ws, rt, "Upper A", D(2026, 10, 25))
+        line = [l for l in lines if l.startswith("- Alzate")][0]
+        self.assertIn("— 10 kg (stesso carico", line)
+        self.assertNotIn("non aggiornata", line)
 
     def test_walk_in_routine_ignored(self):
         ws = [wkt("2026-10-04T10:00:00Z", [("Camminata", "W1", [{"type": "normal", "distance_meters": 900}])])]

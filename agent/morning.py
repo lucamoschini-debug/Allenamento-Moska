@@ -277,7 +277,7 @@ def history_for(exercise, classified, scheda):
             sets = group_per_leg(sets)
         ws = working_sets(sets)
         if ws:
-            hist.append((started.date(), ws, started))
+            hist.append((started.date(), ws, started, _label))
     # Le sedute di scarico non contano per i carichi: si riparte da quelli di prima.
     normal = [h for h in hist if not in_deload(scheda, h[0])]
     return normal or hist
@@ -407,7 +407,7 @@ def suggest(exercise, history, ph, factor, version_dt=None):
             return "corpo libero", "", None, True
         return ("partenza " + fmt_loads(start, unit) + ", poi tara a RPE 7-8"), "", None, True
 
-    last_day, last_ws, last_start = history[0]
+    last_day, last_ws, last_start = history[0][:3]
     loads = [_w(s) for s in last_ws][:n_sets]
     while len(loads) < n_sets:
         loads.append(loads[-1])
@@ -498,7 +498,7 @@ def _loads_of(ws, n):
     return loads
 
 
-def suggest_from_routine(exercise, history, ph, factor, rloads):
+def suggest_from_routine(exercise, history, ph, factor, rloads, session=None):
     """Come suggest(), ma il carico di base è quello della routine Hevy."""
     step = exercise.get("step_kg")
     unit = exercise.get("unit", "kg totali")
@@ -517,17 +517,38 @@ def suggest_from_routine(exercise, history, ph, factor, rloads):
     if not history:
         return fmt_loads(loads, unit), "carico della routine, poi tara a RPE 7-8", None, True
 
-    def ok(ws):  # al tetto con almeno i carichi della routine
+    # Routine ferma: l'ultima seduta è già almeno un gradino sopra la routine
+    # (aumento fatto ma non registrato). Si parte da quella, per non salire due volte.
+    # Solo se l'ultima esecuzione era in questa stessa seduta (stessa routine).
+    stale = False
+    same = len(history[0]) < 4 or session is None or history[0][3] == session
+    if step and any(loads) and same:
+        done = _loads_of(history[0][1], n)
+        if done and all(d >= l + step for d, l in zip(done, loads)):
+            loads, stale = done, True
+
+    def ok(ws):  # al tetto con almeno il carico di base
         return at_top(ws, rmax) and all(h >= r for h, r in zip(_loads_of(ws, n), loads))
     top_now = ok(history[0][1])
     top_prev = len(history) >= 2 and ok(history[1][1])
     if top_now and top_prev and step and any(loads):
-        return fmt_loads([l + step for l in loads], unit), "+%s kg: 2 sedute al tetto" % fmt_num(step), last_txt, False
+        new = [l + step for l in loads]
+        return fmt_loads(new, unit), "aumento maturo (2 sedute al tetto): porta la routine Hevy a %s" % hevy_value(new, exercise), last_txt, False
+    if stale:
+        return fmt_loads(loads, unit), "routine Hevy non aggiornata: portala a %s" % hevy_value(loads, exercise), last_txt, False
     if top_now:
         if not step:
             return fmt_loads(loads, unit), "al tetto: +1-2 rip o zavorra leggera", last_txt, False
         return fmt_loads(loads, unit), "stesso carico, già al tetto: se si ripete +1 gradino", last_txt, False
     return fmt_loads(loads, unit), "stesso carico, +1-2 rip per serie fino a %d" % rmax, last_txt, False
+
+
+def hevy_value(loads, exercise):
+    """Carico come va scritto nella routine Hevy (totale dei manubri dove serve)."""
+    if exercise.get("hevy_total_from"):
+        loads = [l * 2 for l in loads]
+    txt = fmt_num(loads[0]) if len(set(loads)) == 1 else "/".join(fmt_num(l) for l in loads)
+    return txt + " kg"
 
 
 # --------------------------------------------------------------------------
@@ -629,7 +650,7 @@ def session_block(name, classified, scheda, today, ph, routines=None):
         n_sets = ex["sets"]
         rl = routine_loads(ex, rex) if rex else []
         if rl:
-            r_load, r_goal, r_last, r_new = suggest_from_routine(ex, hist, ph, factor, rl)
+            r_load, r_goal, r_last, r_new = suggest_from_routine(ex, hist, ph, factor, rl, name)
             if (r_load != load and load != TARATURA) or len(rl) != n_sets:
                 diffs.append("%s %dx %s (scheda %dx %s)" % (ex["name"], len(rl), r_load, n_sets, load))
             load, goal, last, is_new = r_load, r_goal, r_last, r_new
