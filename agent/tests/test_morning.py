@@ -410,6 +410,12 @@ class TestRoutines(unittest.TestCase):
         self.assertTrue(any(l.startswith("- Rematore al Cavo a un Braccio — 3x10-12 — 10 kg") for l in lines))
         self.assertFalse([d for d in diffs if "Braccio" in d or "Single Arm" in d])
 
+    def test_walk_in_routine_ignored(self):
+        ws = [wkt("2026-10-04T10:00:00Z", [("Camminata", "W1", [{"type": "normal", "distance_meters": 900}])])]
+        rt = [routine("Giorno 2 - Lower A", [("Walking", "W1", [{"type": "normal"}])])]
+        _, _, _, diffs = self.block(ws, rt, "Lower A")
+        self.assertFalse([d for d in diffs if "Camminata" in d or "Walking" in d])
+
     def test_without_routines_scheda_only(self):
         ws = [wkt("2026-10-11T10:00:00Z", [("Chest Press (Macchina)", "T1", [s(17.5, 12)] * 3)])]
         lines, _, _, diffs = self.block(ws, None)

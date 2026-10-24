@@ -654,9 +654,10 @@ def session_block(name, classified, scheda, today, ph, routines=None):
         for w, _l in classified:
             for e in w.get("exercises", []):
                 it_title.setdefault(e.get("exercise_template_id"), e.get("title"))
+        ignore = set(norm(t) for t in scheda.get("ignore_titles", []))
         for e in routine.get("exercises", []):
             tid = e.get("exercise_template_id")
-            if tid not in matched:
+            if tid not in matched and norm(it_title.get(tid, e.get("title"))) not in ignore:
                 diffs.append("%s è nella routine ma non in scheda" % it_title.get(tid, e.get("title")))
     return lines, new_ex, no_title, diffs
 
