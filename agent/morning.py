@@ -239,32 +239,48 @@ def group_per_leg(sets):
     return out
 
 
-def working_sets(sets):
-    """Serie di lavoro: escluse le warmup. Se nessuna è marcata warmup e la
-    prima ha carico < 85% di tutte le altre, la prima è riscaldamento.
-    failure e dropset contano come lavoro."""
+def working_sets_info(sets):
+    """(serie di lavoro, riscaldamento implicito?). Escluse le warmup. Se nessuna è
+    marcata warmup e la prima ha carico < 85% di tutte le altre, la prima è
+    riscaldamento (implicito). failure e dropset contano come lavoro."""
     sets = [s for s in sets if s.get("reps")]
     if any(s.get("type") == "warmup" for s in sets):
-        return [s for s in sets if s.get("type") != "warmup"]
+        return [s for s in sets if s.get("type") != "warmup"], False
     if len(sets) >= 2:
         others = min(_w(s) for s in sets[1:])
         if _w(sets[0]) < 0.85 * others:
-            return sets[1:]
-    return sets
+            return sets[1:], True
+    return sets, False
+
+
+def working_sets(sets):
+    return working_sets_info(sets)[0]
+
+
+class Done(tuple):
+    """Un'esecuzione dell'esercizio. Indici 0-3 come prima (data, serie di lavoro,
+    inizio, seduta); in più .deload (settimana di scarico) e .implicit (prima serie
+    trattata come riscaldamento con la regola dell'85%)."""
+    def __new__(cls, day, ws, started, label, deload=False, implicit=False):
+        o = super().__new__(cls, (day, ws, started, label))
+        o.deload, o.implicit = deload, implicit
+        return o
 
 
 def history_for(exercise, classified, scheda):
-    """Ultime esecuzioni (più recente per prima): [(data, serie di lavoro, inizio)].
-    Si usano solo gli hevy_titles dell'esercizio (i legacy servono solo al
-    riconoscimento della seduta)."""
+    """Tutte le esecuzioni dell'esercizio, dalla più recente: [Done].
+    Si usano solo gli hevy_titles (e hevy_template_ids) dell'esercizio; i legacy
+    servono solo al riconoscimento della seduta. Le sedute di scarico ci sono,
+    marcate .deload: valid_history() le toglie."""
     titles = set(norm(t) for t in exercise.get("hevy_titles", []))
-    if not titles:
+    tids = set(exercise.get("hevy_template_ids", []))
+    if not titles and not tids:
         return []
     hist = []
     for w, _label in sorted(classified, key=lambda x: x[0]["start_time"], reverse=True):
         sets = []
         for e in w.get("exercises", []):
-            if norm(e.get("title")) in titles:
+            if norm(e.get("title")) in titles or (tids and e.get("exercise_template_id") in tids):
                 sets.extend(e.get("sets", []))
         if not sets:
             continue
@@ -275,12 +291,17 @@ def history_for(exercise, classified, scheda):
             sets = [dict(x, weight_kg=_w(x) / 2) for x in sets]
         if exercise.get("per_leg"):
             sets = group_per_leg(sets)
-        ws = working_sets(sets)
+        ws, implicit = working_sets_info(sets)
         if ws:
-            hist.append((started.date(), ws, started, _label))
-    # Le sedute di scarico non contano per i carichi: si riparte da quelli di prima.
-    normal = [h for h in hist if not in_deload(scheda, h[0])]
-    return normal or hist
+            hist.append(Done(started.date(), ws, started, _label,
+                             in_deload(scheda, started.date()), implicit))
+    return hist
+
+
+def valid_history(hist):
+    """Esecuzioni valide per la progressione: senza le sedute di scarico.
+    Ritorna [(posizione nella storia completa, Done)]."""
+    return [(i, h) for i, h in enumerate(hist) if not getattr(h, "deload", False)]
 
 
 def at_top(ws, rep_max):
@@ -385,69 +406,111 @@ def start_loads(exercise):
     return None
 
 
-def suggest(exercise, history, ph, factor, version_dt=None):
-    """Restituisce (testo carico, testo obiettivo, ultima volta | None, nuovo esercizio?)
+def advise(exercise, history, ph, factor, version_dt=None, rloads=None, session=None):
+    """Consiglio per un esercizio. Ritorna un dict:
+    load (testo), goal, last (testo "ultima volta"), new (senza storico),
+    update (carico da scrivere nella routine Hevy, o None), implicit (data di una
+    seduta con riscaldamento implicito, o None).
 
-    Se l'ultima esecuzione è precedente alla versione della scheda e la scheda
-    ha un carico di partenza numerico, vale quello (prima seduta della nuova
-    scheda); dalla seduta successiva vale la regola di progressione."""
-    n_sets = exercise["sets"]
+    Base del carico: la routine Hevy (rloads) se c'è; altrimenti, alla prima seduta
+    dopo version_dt, il carico di partenza della scheda; altrimenti l'ultima seduta
+    valida. Le sedute di scarico non contano: né per la base né per lo step, e due
+    sedute valide separate da una seduta di scarico non sono consecutive."""
     step = exercise.get("step_kg")
     unit = exercise.get("unit", "kg totali")
-    rmin, rmax = exercise["rep_min"], exercise["rep_max"]
+    rmax = exercise["rep_max"]
     per_leg = exercise.get("per_leg", False)
+    out = {"load": "", "goal": "", "last": None, "new": False, "update": None, "implicit": None}
+    valid = valid_history(history)
 
-    if not history:
+    if valid:
+        pos0, h0 = valid[0]
+        out["last"] = fmt_last(h0[0], h0[1], per_leg)
+        skipped = [h for h in history[:pos0]]
+        if skipped:
+            out["last"] += " (scarico del %s escluso)" % ", ".join(h[0].strftime("%d/%m") for h in skipped)
+        if getattr(h0, "implicit", False):
+            out["implicit"] = h0[0]
+
+    # Base del carico
+    if rloads:
+        loads = list(rloads)
+        from_routine = True
+    elif not valid:
         start = start_loads(exercise)
         if start is None:
-            return TARATURA, "", None, True
+            out.update(load=TARATURA, new=True)
+            return out
         if ph == "deload":
             start = [deload(l, step, factor) for l in start]
-        if all(l == 0 for l in start):
-            return "corpo libero", "", None, True
-        return ("partenza " + fmt_loads(start, unit) + ", poi tara a RPE 7-8"), "", None, True
+        out["new"] = True
+        out["load"] = "corpo libero" if not any(start) else "partenza " + fmt_loads(start, unit) + ", poi tara a RPE 7-8"
+        return out
+    else:
+        from_routine = False
+        loads = _loads_of(valid[0][1][1], exercise["sets"])
+        start = start_loads(exercise)
+        if version_dt is not None and valid[0][1][2] < version_dt and start is not None and any(start):
+            loads = start
+    n = len(loads)
+    short = "kg per mano" if unit == "kg per mano, totale in Hevy" else unit
+    keep = "mantieni %s" % fmt_loads(loads, short)
 
-    last_day, last_ws, last_start = history[0][:3]
-    loads = [_w(s) for s in last_ws][:n_sets]
-    while len(loads) < n_sets:
-        loads.append(loads[-1])
-    last_txt = fmt_last(last_day, last_ws, per_leg)
-
-    start = start_loads(exercise)
-    if version_dt is not None and last_start < version_dt and start is not None and any(start):
+    if not valid and from_routine:
+        out.update(load=fmt_loads(loads, unit), goal="carico della routine, poi tara a RPE 7-8", new=True)
         if ph == "deload":
-            start = [deload(l, step, factor) for l in start]
-            return fmt_loads(start, unit), "partenza scheda, scarico, RPE 6", last_txt, False
-        return fmt_loads(start, unit), "partenza della scheda nuova", last_txt, False
-
+            out.update(load=fmt_loads([deload(l, step, factor) for l in loads], unit), goal="scarico: -10% oppure una serie in meno, RPE 6")
+        return out
     if ph == "deload":
-        loads = [deload(l, step, factor) for l in loads]
-        return fmt_loads(loads, unit), "scarico, RPE 6", last_txt, False
+        out.update(load=fmt_loads([deload(l, step, factor) for l in loads], unit),
+                   goal="scarico: -10% oppure una serie in meno, RPE 6")
+        return out
     if ph == "ended":
-        return fmt_loads(loads, unit), "stesso carico", last_txt, False
+        out.update(load=fmt_loads(loads, unit), goal=keep + ", nessuna progressione")
+        return out
     if exercise.get("progression_suspended"):
-        return fmt_loads(loads, unit), "stesso carico, progressione sospesa", last_txt, False
+        out.update(load=fmt_loads(loads, unit), goal=keep + " (progressione sospesa)")
+        return out
     if ph == "no_progression":
-        return fmt_loads(loads, unit), "settimana di ripetizioni: stesso carico, +1-2 rip per serie fino a %d" % rmax, last_txt, False
+        out.update(load=fmt_loads(loads, unit), goal=keep + ", obiettivo +1-2 ripetizioni (settimana di ripetizioni)")
+        return out
 
-    top_now = at_top(last_ws, rmax)
-    # Si sale solo se anche la seduta precedente era al tetto con almeno gli stessi carichi.
-    top_prev = False
-    if len(history) >= 2 and at_top(history[1][1], rmax):
-        prev_loads = [_w(s) for s in history[1][1]][:n_sets]
-        while len(prev_loads) < n_sets:
-            prev_loads.append(prev_loads[-1])
-        top_prev = all(p >= c for p, c in zip(prev_loads, loads))
-    if top_now and top_prev:
-        if step and not all(l == 0 for l in loads):
-            loads = [l + step for l in loads]
-            return fmt_loads(loads, unit), "+%s kg: 2 sedute al tetto" % fmt_num(step), last_txt, False
-        return fmt_loads(loads, unit), "al tetto, nessun gradino: mantieni", last_txt, False
-    if top_now:
-        if not step:
-            return fmt_loads(loads, unit), "al tetto: +1-2 rip o zavorra leggera", last_txt, False
-        return fmt_loads(loads, unit), "stesso carico, già al tetto: se si ripete +1 gradino", last_txt, False
-    return fmt_loads(loads, unit), "stesso carico, +1-2 rip per serie fino a %d" % rmax, last_txt, False
+    # Routine ferma: l'ultima seduta valida della stessa routine è già almeno un
+    # gradino sopra. Si parte da quella, per non salire due volte.
+    h0 = valid[0][1]
+    stale = False
+    if from_routine and step and any(loads) and (session is None or h0[3] == session):
+        done = _loads_of(h0[1], n)
+        if done and all(d >= l + step for d, l in zip(done, loads)):
+            loads, stale = done, True
+            keep = "mantieni %s" % fmt_loads(loads, short)
+
+    def ok(ws):  # tutte le serie al tetto, con almeno il carico di base
+        return at_top(ws, rmax) and all(h >= r for h, r in zip(_loads_of(ws, n), loads))
+    top_now = ok(h0[1])
+    top_prev = (len(valid) >= 2 and valid[1][0] == valid[0][0] + 1 and ok(valid[1][1][1]))
+    if top_now and top_prev and step and any(loads):
+        new = [l + step for l in loads]
+        out.update(load=fmt_loads(new, unit), update=hevy_value(new, exercise),
+                   goal="STEP CONFERMATO: porta la routine a %s" % hevy_value(new, exercise))
+        return out
+    out["load"] = fmt_loads(loads, unit)
+    if stale:
+        out.update(update=hevy_value(loads, exercise),
+                   goal="routine Hevy non aggiornata: portala a %s" % hevy_value(loads, exercise))
+    elif top_now and step:
+        out["goal"] = keep + ": al tetto, se si ripete nella prossima seduta valida scatta lo step"
+    elif top_now:
+        out["goal"] = keep + ", al tetto"
+    else:
+        out["goal"] = keep + ", obiettivo +1-2 ripetizioni"
+    return out
+
+
+def suggest(exercise, history, ph, factor, version_dt=None):
+    """Compatibilità: (carico, obiettivo, ultima volta, nuovo?) dalla sola scheda."""
+    a = advise(exercise, history, ph, factor, version_dt)
+    return a["load"], a["goal"], a["last"], a["new"]
 
 
 # --------------------------------------------------------------------------
@@ -496,51 +559,6 @@ def _loads_of(ws, n):
     while loads and len(loads) < n:
         loads.append(loads[-1])
     return loads
-
-
-def suggest_from_routine(exercise, history, ph, factor, rloads, session=None):
-    """Come suggest(), ma il carico di base è quello della routine Hevy."""
-    step = exercise.get("step_kg")
-    unit = exercise.get("unit", "kg totali")
-    rmax = exercise["rep_max"]
-    loads = list(rloads)
-    n = len(loads)
-    last_txt = fmt_last(history[0][0], history[0][1], exercise.get("per_leg", False)) if history else None
-    if ph == "deload":
-        return fmt_loads([deload(l, step, factor) for l in loads], unit), "scarico, RPE 6", last_txt, not history
-    if ph == "ended":
-        return fmt_loads(loads, unit), "stesso carico", last_txt, not history
-    if exercise.get("progression_suspended"):
-        return fmt_loads(loads, unit), "stesso carico, progressione sospesa", last_txt, not history
-    if ph == "no_progression":
-        return fmt_loads(loads, unit), "settimana di ripetizioni: stesso carico, +1-2 rip per serie fino a %d" % rmax, last_txt, not history
-    if not history:
-        return fmt_loads(loads, unit), "carico della routine, poi tara a RPE 7-8", None, True
-
-    # Routine ferma: l'ultima seduta è già almeno un gradino sopra la routine
-    # (aumento fatto ma non registrato). Si parte da quella, per non salire due volte.
-    # Solo se l'ultima esecuzione era in questa stessa seduta (stessa routine).
-    stale = False
-    same = len(history[0]) < 4 or session is None or history[0][3] == session
-    if step and any(loads) and same:
-        done = _loads_of(history[0][1], n)
-        if done and all(d >= l + step for d, l in zip(done, loads)):
-            loads, stale = done, True
-
-    def ok(ws):  # al tetto con almeno il carico di base
-        return at_top(ws, rmax) and all(h >= r for h, r in zip(_loads_of(ws, n), loads))
-    top_now = ok(history[0][1])
-    top_prev = len(history) >= 2 and ok(history[1][1])
-    if top_now and top_prev and step and any(loads):
-        new = [l + step for l in loads]
-        return fmt_loads(new, unit), "aumento maturo (2 sedute al tetto): porta la routine Hevy a %s" % hevy_value(new, exercise), last_txt, False
-    if stale:
-        return fmt_loads(loads, unit), "routine Hevy non aggiornata: portala a %s" % hevy_value(loads, exercise), last_txt, False
-    if top_now:
-        if not step:
-            return fmt_loads(loads, unit), "al tetto: +1-2 rip o zavorra leggera", last_txt, False
-        return fmt_loads(loads, unit), "stesso carico, già al tetto: se si ripete +1 gradino", last_txt, False
-    return fmt_loads(loads, unit), "stesso carico, +1-2 rip per serie fino a %d" % rmax, last_txt, False
 
 
 def hevy_value(loads, exercise):
@@ -616,8 +634,10 @@ def unrecognized(classified, scheda, today, days=14):
     return seen
 
 
-def session_block(name, classified, scheda, today, ph, routines=None):
+def session_block(name, classified, scheda, today, ph, routines=None, extra=None):
     """Righe della seduta. Ritorna (righe, nuovi esercizi, senza titolo Hevy, differenze con la routine).
+    Se extra è un dict, ci aggiunge "updates" ([(esercizio, carico Hevy)]: routine da
+    aggiornare) e "implicit" ([(esercizio, data)]: prima serie trattata come riscaldamento).
     Con le routine Hevy (routines non None): dove la routine non coincide con la
     scheda valgono serie e carichi della routine, e la differenza viene segnalata."""
     s = scheda["sessions"][name]
@@ -646,23 +666,34 @@ def session_block(name, classified, scheda, today, ph, routines=None):
             lines.append("- %s — SOSPESO %s%s" % (ex["name"], ex["suspended"], again))
             continue
         hist = history_for(ex, classified, scheda)
-        load, goal, last, is_new = suggest(ex, hist, ph, factor, version_dt)
+        a = advise(ex, hist, ph, factor, version_dt)
         n_sets = ex["sets"]
         rl = routine_loads(ex, rex) if rex else []
         if rl:
-            r_load, r_goal, r_last, r_new = suggest_from_routine(ex, hist, ph, factor, rl, name)
-            if (r_load != load and load != TARATURA) or len(rl) != n_sets:
-                diffs.append("%s %dx %s (scheda %dx %s)" % (ex["name"], len(rl), r_load, n_sets, load))
-            load, goal, last, is_new = r_load, r_goal, r_last, r_new
+            r = advise(ex, hist, ph, factor, version_dt, rloads=rl, session=name)
+            plain = a["load"]
+            if plain.startswith("partenza ") and ", poi tara" in plain:
+                plain = plain[len("partenza "):plain.index(", poi tara")]
+            undefined = start_loads(ex) is None  # "da definire" in scheda: decide la routine
+            load_diff = r["load"] != plain and a["load"] != TARATURA and not undefined and ph != "deload"
+            if load_diff or len(rl) != n_sets:
+                diffs.append("%s %dx %s (scheda %dx %s)" % (ex["name"], len(rl), r["load"], n_sets, a["load"]))
+            a = r
             n_sets = len(rl)
         elif routine:
             diffs.append("%s manca nella routine" % ex["name"])
+        load, goal, last, is_new = a["load"], a["goal"], a["last"], a["new"]
+        if extra is not None:
+            if a["update"]:
+                extra.setdefault("updates", []).append((ex["name"], a["update"]))
+            if a["implicit"]:
+                extra.setdefault("implicit", []).append((ex["name"], a["implicit"]))
         if ex.get("per_leg"):
             reps += " per gamba"
         line = "- %s — %dx%s — %s" % (ex["name"], n_sets, reps, load)
-        extra = [x for x in (goal, last) if x]
-        if extra:
-            line += " (" + "; ".join(extra) + ")"
+        detail = [x for x in (goal, last) if x]
+        if detail:
+            line += " (" + "; ".join(detail) + ")"
         if ex.get("notes") and ex["notes"] not in line:
             line += " [" + ex["notes"] + "]"
         lines.append(line)
@@ -689,6 +720,7 @@ def build_message(classified, scheda, today, routines=None):
     date_txt = "%s %s" % (WEEKDAYS[today.weekday()], today.strftime("%d/%m/%Y"))
     out = ["Buongiorno Luca — " + date_txt]
     notes = []
+    footer = None
     gn = scheda["general_notes"]
 
     wk = week_of(scheda, today)
@@ -717,8 +749,9 @@ def build_message(classified, scheda, today, routines=None):
                 out.append("Prossima seduta: %s, dopo 1-2 giorni di riposo." % plan["next"])
             else:
                 out.append("Prossima seduta: %s (%s)" % (plan["next"], scheda["sessions"][plan["next"]]["duration"]))
-        if plan["mode"] == "rest" and scheda.get("rest_day_line"):
-            out.append(scheda["rest_day_line"])
+        if plan["mode"] == "rest":
+            for line in scheda.get("rest_day_lines", [scheda["rest_day_line"]] if scheda.get("rest_day_line") else []):
+                out.append(line)
     else:
         name = plan["session"]
         s = scheda["sessions"][name]
@@ -726,8 +759,19 @@ def build_message(classified, scheda, today, routines=None):
         if plan.get("rested_before") and plan["last"][0] == scheda["rest_after"]:
             notes.append("Riposo già fatto prima del %s (allenamento precedente: %s)." % (
                 plan["last"][0], plan["rested_before"].strftime("%d/%m")))
-        lines, new_ex, no_title, diffs = session_block(name, classified, scheda, today, ph, routines)
+        extra = {}
+        lines, new_ex, no_title, diffs = session_block(name, classified, scheda, today, ph, routines, extra)
         out.extend(lines)
+        if ph != "deload":
+            ups = extra.get("updates", [])
+            footer = "Routine da aggiornare in Hevy: " + ("; ".join("%s a %s" % u for u in ups) if ups else "nessuna")
+        for rem in s.get("reminders", []):
+            if (not rem.get("from") or today >= dt.date.fromisoformat(rem["from"])) and \
+               (not rem.get("until") or today <= dt.date.fromisoformat(rem["until"])):
+                notes.append(rem["text"])
+        if extra.get("implicit"):
+            notes.append("Prima serie contata come riscaldamento (non segnata warmup in Hevy): " +
+                         ", ".join("%s %s" % (n, d.strftime("%d/%m")) for n, d in extra["implicit"]) + ".")
         if diffs:
             notes.append("Differenze con la routine Hevy (vale Hevy): " + "; ".join(diffs) + ".")
         if new_ex:
@@ -742,6 +786,8 @@ def build_message(classified, scheda, today, routines=None):
         notes.append("Esercizi non riconosciuti: " + ", ".join(unk) + ".")
     if notes:
         out.append("Note: " + " ".join(notes))
+    if footer:
+        out.append(footer)
 
     msg = "\n".join(out)
     if len(msg) > MAX_CHARS:
