@@ -432,6 +432,14 @@ def advise(exercise, history, ph, factor, version_dt=None, rloads=None, session=
         if getattr(h0, "implicit", False):
             out["implicit"] = h0[0]
 
+    # Carico "da definire" con un testo di taratura: finché non ci sono due sedute
+    # valide registrate con un carico, niente step e si propone la taratura.
+    if exercise.get("taratura") and start_loads(exercise) is None:
+        loaded = [h for _i, h in valid if any(_w(x) for x in h[1])]
+        if len(loaded) < 2:
+            out["load"] = exercise["taratura"]
+            return out
+
     # Base del carico
     if rloads:
         loads = list(rloads)
@@ -807,6 +815,7 @@ def main(argv=None):
     ap.add_argument("--dry-run", action="store_true", help="stampa il messaggio senza inviarlo")
     ap.add_argument("--fixture", help="file JSON con allenamenti di prova (al posto di Hevy)")
     ap.add_argument("--today", help="data di riferimento AAAA-MM-GG (default: oggi, Europe/Rome)")
+    ap.add_argument("--prova", action="store_true", help="aggiunge [PROVA] all'inizio del messaggio")
     args = ap.parse_args(argv)
 
     try:
@@ -825,6 +834,8 @@ def main(argv=None):
             except FetchError as e:
                 print("AVVISO: routine Hevy non lette (%s): uso solo la scheda" % e, file=sys.stderr)
         msg = build_message(classified, scheda, today, routines)
+        if args.prova:
+            msg = "[PROVA] " + msg
         if args.dry_run:
             print(msg)
             print("\n[dry run: %d caratteri, non inviato]" % len(msg))

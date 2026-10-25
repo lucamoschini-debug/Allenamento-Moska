@@ -184,13 +184,13 @@ class TestSuggest(unittest.TestCase):
         self.assertEqual(a["update"], "8 kg")
 
     def test_no_history(self):
-        self.assertEqual(self.adv("Lower A", "Calf Raise Seduto", [])["load"], morning.TARATURA)
+        self.assertIn("tra 2,5 e 5 kg", self.adv("Lower A", "Calf Raise Seduto", [])["load"])
         self.assertIn("partenza 12,5 kg", self.adv("Upper C", "Face Pull", [])["load"])
         self.assertEqual(self.adv("Lower A", "Back Extension (Iperestensione)", [])["load"], "corpo libero")
 
     def test_weeks_of_v17_cycle(self):
         self.assertEqual(morning.phase(SCHEDA, D(2026, 10, 26)), "normal")          # S4 carichi
-        self.assertEqual(morning.phase(SCHEDA, D(2026, 11, 4)), "no_progression")   # S5 ripetizioni
+        self.assertEqual(morning.phase(SCHEDA, D(2026, 11, 4)), "normal")           # S5 ripetizioni: step se matura
         self.assertEqual(morning.phase(SCHEDA, D(2026, 11, 9)), "deload")           # S6 scarico
         self.assertEqual(morning.phase(SCHEDA, D(2026, 11, 15)), "deload")
         self.assertEqual(morning.phase(SCHEDA, D(2026, 11, 16)), "normal")          # S7 ripartenza
@@ -242,10 +242,24 @@ class TestSuggest(unittest.TestCase):
         self.assertEqual(a["goal"], "mantieni 25 kg, nessuna progressione")
         self.assertIsNone(a["update"])
 
-    def test_repetition_week_no_step(self):
+    def test_step_can_fire_in_s4_s5_s8_never_in_s6(self):
         ws = [wk("2026-10-27T10:00:00Z", UPPER_B), wk("2026-10-30T10:00:00Z", UPPER_B)]
-        a = self.adv("Upper B", "Trazione verticale (macchina)", ws, today=D(2026, 11, 4))
-        self.assertEqual(a["goal"], "mantieni 25 kg, obiettivo +1-2 ripetizioni (settimana di ripetizioni)")
+        for day in (D(2026, 10, 31), D(2026, 11, 4), D(2026, 11, 25)):        # S4, S5, S8
+            self.assertTrue(self.adv("Upper B", "Trazione verticale (macchina)", ws, today=day)["goal"].startswith("STEP CONFERMATO"))
+        a = self.adv("Upper B", "Trazione verticale (macchina)", ws, today=D(2026, 11, 10))  # S6
+        self.assertIn("scarico", a["goal"])
+        self.assertIsNone(a["update"])
+
+    def test_calf_raise_taratura_until_two_loaded_sessions(self):
+        bw = [("Calf Raise Seduto", [s(0, 15)] * 3)]
+        ws = [wk("2026-10-05T10:00:00Z", bw), wk("2026-10-21T10:00:00Z", bw)]
+        a = self.adv("Lower A", "Calf Raise Seduto", ws, today=D(2026, 10, 27))
+        self.assertIn("tra 2,5 e 5 kg", a["load"]); self.assertIsNone(a["update"])
+        ws.append(wk("2026-10-28T10:00:00Z", [("Calf Raise Seduto", [s(5, 15)] * 3)]))
+        self.assertIn("tra 2,5 e 5 kg", self.adv("Lower A", "Calf Raise Seduto", ws, today=D(2026, 10, 29))["load"])
+        ws.append(wk("2026-10-31T10:00:00Z", [("Calf Raise Seduto", [s(5, 15)] * 3)]))
+        a = self.adv("Lower A", "Calf Raise Seduto", ws, today=D(2026, 11, 1))
+        self.assertEqual(a["goal"], "STEP CONFERMATO: porta la routine a 7,5 kg")
 
     def test_new_scheda_start_load_wins_once(self):
         vdt = morning.dt.datetime.fromisoformat(SCHEDA["version_datetime"])

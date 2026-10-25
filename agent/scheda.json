@@ -36,8 +36,8 @@
         "code": "S5",
         "start": "2026-11-02",
         "end": "2026-11-08",
-        "focus": "Ripetizioni: stessi carichi, +1-2 ripetizioni per serie fino al tetto",
-        "type": "no_progression"
+        "focus": "Ripetizioni: +1-2 ripetizioni per serie fino al tetto (lo step scatta appena matura)",
+        "type": "normal"
       },
       {
         "code": "S6",
@@ -230,9 +230,10 @@
           "rep_min": 12,
           "rep_max": 15,
           "start_load": "da definire",
-          "step_kg": null,
+          "step_kg": 2.5,
           "unit": "kg totali",
-          "notes": "2,5-5 kg (disco sulle ginocchia o macchina)"
+          "notes": "disco sulle ginocchia o macchina",
+          "taratura": "taratura: scegli un carico tra 2,5 e 5 kg con RPE 7-8 (2-3 ripetizioni in riserva)"
         }
       ]
     },
@@ -406,7 +407,7 @@
           "start_load": 15,
           "step_kg": 2.5,
           "unit": "kg totali",
-          "notes": "sconsigliato con il dolore alla spalla: presa larga, gomiti non oltre le spalle; al primo fastidio toglilo",
+          "notes": "progressione sospesa fino al controllo dal fisioterapista (metà-fine novembre); sconsigliato con il dolore alla spalla: presa larga, gomiti non oltre le spalle; al primo fastidio toglilo",
           "progression_suspended": true
         },
         {
