@@ -184,8 +184,8 @@ class TestSuggest(unittest.TestCase):
         self.assertEqual(a["update"], "8 kg")
 
     def test_no_history(self):
-        self.assertIn("tra 2,5 e 5 kg", self.adv("Lower A", "Calf Raise Seduto", [])["load"])
-        self.assertIn("partenza 12,5 kg", self.adv("Upper C", "Face Pull", [])["load"])
+        self.assertEqual(self.adv("Lower A", "Calf Raise Seduto", [])["load"], "corpo libero")
+        self.assertEqual(self.adv("Upper C", "Face Pull", [])["load"], morning.TARATURA)
         self.assertEqual(self.adv("Lower A", "Back Extension (Iperestensione)", [])["load"], "corpo libero")
 
     def test_weeks_of_v17_cycle(self):
@@ -250,24 +250,20 @@ class TestSuggest(unittest.TestCase):
         self.assertIn("scarico", a["goal"])
         self.assertIsNone(a["update"])
 
-    def test_calf_raise_taratura_until_two_loaded_sessions(self):
+    def test_calf_raise_lower_a_bodyweight_no_step(self):
         bw = [("Calf Raise Seduto", [s(0, 15)] * 3)]
         ws = [wk("2026-10-05T10:00:00Z", bw), wk("2026-10-21T10:00:00Z", bw)]
         a = self.adv("Lower A", "Calf Raise Seduto", ws, today=D(2026, 10, 27))
-        self.assertIn("tra 2,5 e 5 kg", a["load"]); self.assertIsNone(a["update"])
-        ws.append(wk("2026-10-28T10:00:00Z", [("Calf Raise Seduto", [s(5, 15)] * 3)]))
-        self.assertIn("tra 2,5 e 5 kg", self.adv("Lower A", "Calf Raise Seduto", ws, today=D(2026, 10, 29))["load"])
-        ws.append(wk("2026-10-31T10:00:00Z", [("Calf Raise Seduto", [s(5, 15)] * 3)]))
-        a = self.adv("Lower A", "Calf Raise Seduto", ws, today=D(2026, 11, 1))
-        self.assertEqual(a["goal"], "STEP CONFERMATO: porta la routine a 7,5 kg")
-
-    def test_new_scheda_start_load_wins_once(self):
-        vdt = morning.dt.datetime.fromisoformat(SCHEDA["version_datetime"])
-        curl8 = [("Curl Bicipiti (Manubrio)", [s(8, 12)] * 3)]
-        old = [wk("2026-10-13T10:00:00Z", curl8), wk("2026-10-23T10:00:00Z", curl8)]
-        a = self.adv("Upper B", "Curl Bicipiti (Manubrio)", old, today=D(2026, 10, 26), version_dt=vdt)
-        self.assertEqual(a["load"], "9 kg per mano")  # partenza v17, niente doppio step
+        self.assertEqual(a["load"], "corpo libero")
+        self.assertEqual(a["goal"], "mantieni corpo libero, al tetto")
         self.assertIsNone(a["update"])
+
+    def test_loads_come_from_hevy_not_from_scheda(self):
+        # v18: nessun carico di partenza in scheda, la base è l'ultima seduta valida
+        curl8 = [("Curl Bicipiti (Manubrio)", [s(8, 12)] * 3)]
+        ws = [wk("2026-10-13T10:00:00Z", curl8), wk("2026-10-23T10:00:00Z", curl8)]
+        a = self.adv("Upper B", "Curl Bicipiti (Manubrio)", ws, today=D(2026, 10, 26))
+        self.assertEqual(a["goal"], "STEP CONFERMATO: porta la routine a 9 kg")
 
     def test_plates_unit(self):
         self.assertEqual(morning.fmt_loads([22.5] * 3, "kg di dischi"), "22,5 kg di dischi (11,25 per lato)")
@@ -360,14 +356,15 @@ class TestMessage(unittest.TestCase):
     def test_deload_note(self):
         m = self.msg([wk("2026-11-09T12:00:00Z", UPPER_A)], D(2026, 11, 10))
         self.assertIn("Settimana S6 (09/11-15/11): Scarico.", m)
-        self.assertIn("Settimana di scarico: carichi -10% (arrotondati al gradino) oppure una serie in meno, RPE 6.", m)
+        self.assertIn("Settimana di scarico: una serie in meno per esercizio e carichi -10% (arrotondati al gradino, almeno un gradino), RPE 6.", m)
+        self.assertIn("Leg Press Orizzontale (Macchina) — 3x10-12 —", m)   # 4 serie meno una
         self.assertNotIn("Routine da aggiornare", m)  # durante lo scarico le routine non si toccano
         self.assertNotIn("Settimana di scarico", self.msg([wk("2026-10-24T12:00:00Z", UPPER_A)], D(2026, 10, 28)))
 
     def test_upper_c_new_exercises(self):
         m = self.msg([wk("2026-09-01T10:00:00Z", UPPER_B)], D(2026, 9, 2))
         self.assertIn("Oggi: Upper C", m)
-        self.assertIn("Lento in Avanti Seduto (Macchina) — 3x10-12 — partenza 12,5 kg", m)
+        self.assertIn("Lento in Avanti Seduto (Macchina) — 3x10-12 — taratura", m)
         self.assertIn("Rinforzo spalla a inizio seduta", m)
         self.assertNotIn("Tirata verticale", m)
 
@@ -396,21 +393,18 @@ class TestMessage(unittest.TestCase):
         self.assertIn("Lento in Avanti Seduto (Macchina)", uc)
         self.assertNotIn("Tirata verticale a presa neutra", uc)
 
-    def test_v17_values(self):
-        def get(sess, name):
-            return ex_cfg(sess, name)
-        self.assertEqual(SCHEDA["version"], "v17")
-        self.assertEqual(get("Upper A", "Chest Press (Macchina)")["start_load"], 20)
-        self.assertEqual(get("Lower A", "Leg Press Orizzontale (Macchina)")["start_load"], 55)
-        self.assertEqual(get("Lower B", "Hip Thrust (macchina)")["start_load"], 40)
-        self.assertEqual(get("Upper B", "Curl Bicipiti (Manubrio)")["start_load"], 9)
-        self.assertEqual(get("Lower B", "Abduzione Anche (Macchina)")["start_load"], 22.5)
-        self.assertEqual(get("Upper A", "Panca Inclinata (Multipower)")["start_load"], 22.5)
-        tr = get("Upper B", "Trazione verticale (macchina)")
-        self.assertEqual((tr["sets"], tr["start_load"]), (3, 32.5))
-        self.assertEqual(get("Upper C", "Lento in Avanti Seduto (Macchina)")["start_load"], 12.5)
-        self.assertEqual(get("Lower B", "Hip Thrust (macchina)")["step_kg"], 5)
-        self.assertEqual(get("Lower A", "Leg Press Orizzontale (Macchina)")["step_kg"], 5)
+    def test_v18_structure(self):
+        self.assertEqual(SCHEDA["version"], "v18")
+        self.assertNotIn("version_datetime", SCHEDA)
+        for sess in SCHEDA["sessions"].values():
+            for e in sess["exercises"]:
+                self.assertIn(e["start_load"], ("da definire", "corpo libero"), e["name"])
+        self.assertEqual(ex_cfg("Lower B", "Hip Thrust (macchina)")["sets"], 3)
+        self.assertEqual(ex_cfg("Lower B", "Leg Curl Sdraiato (Macchina)")["sets"], 3)
+        self.assertEqual(ex_cfg("Upper B", "Trazione verticale (macchina)")["sets"], 3)
+        self.assertEqual(ex_cfg("Lower B", "Hip Thrust (macchina)")["step_kg"], 5)
+        self.assertEqual(ex_cfg("Lower A", "Leg Press Orizzontale (Macchina)")["step_kg"], 5)
+        self.assertIsNone(ex_cfg("Lower A", "Calf Raise Seduto")["step_kg"])
 
     def test_step_confirmed_in_footer(self):
         top = [("Trazione verticale (macchina)", [s(32.5, 12)] * 3)]
@@ -493,7 +487,7 @@ class TestRoutines(unittest.TestCase):
         rt = [routine("Giorno 1 - Upper A - Petto", [("Chest Press (Machine)", "T1", [self.W] + [s(22.5, 12)] * 3)])]
         lines, _, _, diffs = self.block(ws, rt)
         self.assertIn("Chest Press (Macchina) — 3x10-12 — 22,5 kg", lines[0])
-        self.assertIn("Chest Press (Macchina) 3x 22,5 kg (scheda 3x 20 kg)", diffs)
+        self.assertFalse([d for d in diffs if d.startswith("Chest Press")])  # i carichi li decide Hevy
         self.assertIn("Pushdown Tricipiti con Corda manca nella routine", diffs)
 
     def test_progression_on_top_of_routine_load(self):
@@ -538,18 +532,18 @@ class TestRoutines(unittest.TestCase):
         ws = [wkt("2026-10-22T10:00:00Z", [("Chest Press (Macchina)", "T1", [s(20, 12)] * 3)])]
         rt = [routine("Giorno 1 - Upper A", [("Chest Press (Machine)", "T1", [s(20, 12)] * 3)])]
         lines, _, _, _ = self.block(ws, rt, today=D(2026, 11, 10), ph="deload")
-        self.assertIn("— 17,5 kg (scarico: -10% oppure una serie in meno, RPE 6", lines[0])
+        self.assertIn("— 2x10-12 — 17,5 kg (scarico: una serie in meno e -10% (almeno un gradino), RPE 6", lines[0])
 
     def test_template_id_from_scheda_and_taratura_not_a_difference(self):
         rt = [routine("Giorno 3 - Upper B", [("Single Arm Cable Row", "D0C4A899", [s(7.5, 12)] * 3)])]
         lines, _, _, diffs = self.block([], rt, "Upper B")
         self.assertTrue(any(l.startswith("- Rematore al Cavo a Braccio Singolo — 3x10-12 — 7,5 kg") for l in lines))
         self.assertFalse([d for d in diffs if "Braccio" in d or "Single Arm" in d])
-        # carico "da definire" in scheda: il carico della routine non è una differenza
+        # Calf Raise del Lower A a corpo libero in scheda: 5 kg in routine è una differenza da segnalare
         ws = [wkt("2026-10-21T10:00:00Z", [("Calf Raise Seduto", "T10", [s(0, 15)] * 3)])]
         rt = [routine("Giorno 2 - Lower A", [("Seated Calf Raise", "T10", [s(5, 15)] * 3)])]
         _, _, _, diffs = self.block(ws, rt, "Lower A")
-        self.assertFalse([d for d in diffs if d.startswith("Calf")])
+        self.assertIn("Calf Raise Seduto 3x 5 kg (scheda 3x corpo libero)", diffs)
 
     def test_routine_updated_no_double_increase(self):
         old = [("Trazione verticale (macchina)", "T2", [s(30, 12)] * 4)]
@@ -593,7 +587,7 @@ class TestRoutines(unittest.TestCase):
     def test_without_routines_scheda_only(self):
         ws = [wkt("2026-10-11T10:00:00Z", [("Chest Press (Macchina)", "T1", [s(17.5, 12)] * 3)])]
         lines, _, _, diffs = self.block(ws, None)
-        self.assertIn("— 20 kg (mantieni 20 kg", lines[0])  # partenza v17 (prima seduta dopo la scheda)
+        self.assertIn("— 17,5 kg (mantieni 17,5 kg", lines[0])  # senza routine: ultima seduta valida
         self.assertEqual(diffs, [])
 
     def test_message_note(self):

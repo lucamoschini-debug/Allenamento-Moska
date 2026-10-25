@@ -467,11 +467,11 @@ def advise(exercise, history, ph, factor, version_dt=None, rloads=None, session=
     if not valid and from_routine:
         out.update(load=fmt_loads(loads, unit), goal="carico della routine, poi tara a RPE 7-8", new=True)
         if ph == "deload":
-            out.update(load=fmt_loads([deload(l, step, factor) for l in loads], unit), goal="scarico: -10% oppure una serie in meno, RPE 6")
+            out.update(load=fmt_loads([deload(l, step, factor) for l in loads], unit), goal="scarico: una serie in meno e -10% (almeno un gradino), RPE 6")
         return out
     if ph == "deload":
         out.update(load=fmt_loads([deload(l, step, factor) for l in loads], unit),
-                   goal="scarico: -10% oppure una serie in meno, RPE 6")
+                   goal="scarico: una serie in meno e -10% (almeno un gradino), RPE 6")
         return out
     if ph == "ended":
         out.update(load=fmt_loads(loads, unit), goal=keep + ", nessuna progressione")
@@ -691,6 +691,8 @@ def session_block(name, classified, scheda, today, ph, routines=None, extra=None
         elif routine:
             diffs.append("%s manca nella routine" % ex["name"])
         load, goal, last, is_new = a["load"], a["goal"], a["last"], a["new"]
+        if ph == "deload":
+            n_sets = max(1, n_sets - 1)  # scarico: una serie in meno
         if extra is not None:
             if a["update"]:
                 extra.setdefault("updates", []).append((ex["name"], a["update"]))

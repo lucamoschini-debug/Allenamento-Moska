@@ -1,8 +1,7 @@
 {
-  "version": "v17",
-  "version_id": "20261025-0215",
-  "version_datetime": "2026-10-25T02:15:00+02:00",
-  "version_rule": "Per ogni esercizio, la prima seduta dopo version_datetime usa start_load (se numerico); poi vale la regola di progressione. Se la routine Hevy dell'esercizio ha carichi diversi, vale la routine.",
+  "version": "v18",
+  "version_id": "20261025-2348",
+  "version_rule": "v18: la scheda definisce esercizi, serie, range e regole; i carichi li decide Hevy (routine + allenamenti registrati). Nessun carico di partenza in scheda.",
   "timezone": "Europe/Rome",
   "rotation": [
     "Upper A",
@@ -22,7 +21,7 @@
     "start": "2026-10-05",
     "end_date": "2026-11-29",
     "deload_factor": 0.9,
-    "deload_note": "Settimana di scarico: carichi -10% (arrotondati al gradino) oppure una serie in meno, RPE 6. Non toccare le routine in Hevy: registra solo i carichi fatti. Le sedute di questa settimana non contano per la progressione.",
+    "deload_note": "Settimana di scarico: una serie in meno per esercizio e carichi -10% (arrotondati al gradino, almeno un gradino), RPE 6. Non toccare le routine in Hevy: registra solo i carichi fatti. Le sedute di questa settimana non contano per la progressione.",
     "end_note": "Ciclo concluso: serve la nuova scheda. Carichi mantenuti, nessuna progressione.",
     "weeks": [
       {
@@ -50,7 +49,7 @@
         "code": "S7",
         "start": "2026-11-16",
         "end": "2026-11-22",
-        "focus": "Ripartenza: carichi di prima dello scarico",
+        "focus": "Ripresa: torna il numero di serie normale, carichi di prima dello scarico",
         "type": "normal"
       },
       {
@@ -91,7 +90,7 @@
           "sets": 3,
           "rep_min": 10,
           "rep_max": 12,
-          "start_load": 20,
+          "start_load": "da definire",
           "step_kg": 2.5,
           "unit": "kg totali",
           "notes": "17,5 kg se la spalla protesta"
@@ -104,7 +103,7 @@
           "sets": 3,
           "rep_min": 10,
           "rep_max": 12,
-          "start_load": 22.5,
+          "start_load": "da definire",
           "step_kg": 2.5,
           "unit": "kg di dischi",
           "notes": "riscaldamento leggero (10 kg di dischi), niente cedimento; solo dischi, barra esclusa"
@@ -117,7 +116,7 @@
           "sets": 3,
           "rep_min": 12,
           "rep_max": 15,
-          "start_load": 7,
+          "start_load": "da definire",
           "step_kg": 1,
           "unit": "kg per mano",
           "notes": "scendi solo fino alla linea del petto"
@@ -130,7 +129,7 @@
           "sets": 6,
           "rep_min": 10,
           "rep_max": 12,
-          "start_load": 10,
+          "start_load": "da definire",
           "step_kg": 2.5,
           "unit": "kg totali",
           "notes": "obiettivo 12 su tutte prima di salire"
@@ -143,7 +142,7 @@
           "sets": 3,
           "rep_min": 12,
           "rep_max": 15,
-          "start_load": 7.5,
+          "start_load": "da definire",
           "step_kg": 2.5,
           "unit": "kg totali",
           "notes": ""
@@ -156,7 +155,7 @@
           "sets": 3,
           "rep_min": 12,
           "rep_max": 15,
-          "start_load": 10,
+          "start_load": "da definire",
           "step_kg": 2.5,
           "unit": "kg totali",
           "notes": "ridotte per la spalla"
@@ -177,7 +176,7 @@
           "sets": 4,
           "rep_min": 10,
           "rep_max": 12,
-          "start_load": 55,
+          "start_load": "da definire",
           "step_kg": 5,
           "unit": "kg totali",
           "notes": ""
@@ -190,7 +189,7 @@
           "sets": 3,
           "rep_min": 12,
           "rep_max": 15,
-          "start_load": 17.5,
+          "start_load": "da definire",
           "step_kg": 2.5,
           "unit": "kg totali",
           "notes": "prima arrivi a 15 ripetizioni"
@@ -203,7 +202,7 @@
           "sets": 3,
           "rep_min": 12,
           "rep_max": 15,
-          "start_load": 20,
+          "start_load": "da definire",
           "step_kg": 2.5,
           "unit": "kg totali",
           "notes": ""
@@ -229,11 +228,10 @@
           "sets": 3,
           "rep_min": 12,
           "rep_max": 15,
-          "start_load": "da definire",
-          "step_kg": 2.5,
+          "start_load": "corpo libero",
+          "step_kg": null,
           "unit": "kg totali",
-          "notes": "disco sulle ginocchia o macchina",
-          "taratura": "taratura: scegli un carico tra 2,5 e 5 kg con RPE 7-8 (2-3 ripetizioni in riserva)"
+          "notes": ""
         }
       ]
     },
@@ -260,7 +258,7 @@
           "sets": 3,
           "rep_min": 10,
           "rep_max": 12,
-          "start_load": 32.5,
+          "start_load": "da definire",
           "step_kg": 2.5,
           "unit": "kg totali",
           "notes": ""
@@ -273,7 +271,7 @@
           "sets": 3,
           "rep_min": 10,
           "rep_max": 12,
-          "start_load": 15,
+          "start_load": "da definire",
           "step_kg": 2.5,
           "unit": "kg totali",
           "notes": ""
@@ -286,7 +284,7 @@
           "sets": 3,
           "rep_min": 10,
           "rep_max": 12,
-          "start_load": 32,
+          "start_load": "da definire",
           "step_kg": 2.5,
           "unit": "kg totali",
           "notes": ""
@@ -299,7 +297,7 @@
           "sets": 3,
           "rep_min": 10,
           "rep_max": 12,
-          "start_load": 7.5,
+          "start_load": "da definire",
           "step_kg": 2.5,
           "unit": "kg totali",
           "notes": "per braccio, al posto del Pullover",
@@ -315,7 +313,7 @@
           "sets": 3,
           "rep_min": 10,
           "rep_max": 12,
-          "start_load": 9,
+          "start_load": "da definire",
           "step_kg": 1,
           "unit": "kg per mano",
           "notes": "10 se non c'è il 9"
@@ -328,7 +326,7 @@
           "sets": 3,
           "rep_min": 10,
           "rep_max": 12,
-          "start_load": 12.5,
+          "start_load": "da definire",
           "step_kg": 2.5,
           "unit": "kg totali",
           "notes": ""
@@ -352,7 +350,7 @@
           "sets": 3,
           "rep_min": 10,
           "rep_max": 12,
-          "start_load": 12.5,
+          "start_load": "da definire",
           "step_kg": 2.5,
           "unit": "kg totali",
           "notes": "progressione lenta: +1 gradino solo dopo 2 sedute al tetto senza fastidio"
@@ -365,7 +363,7 @@
           "sets": 3,
           "rep_min": 10,
           "rep_max": 12,
-          "start_load": 7,
+          "start_load": "da definire",
           "step_kg": 1,
           "unit": "kg per mano",
           "notes": ""
@@ -378,7 +376,7 @@
           "sets": 3,
           "rep_min": 12,
           "rep_max": 15,
-          "start_load": 10,
+          "start_load": "da definire",
           "step_kg": 2.5,
           "unit": "kg totali",
           "notes": "prima arrivi a 15 ripetizioni"
@@ -391,7 +389,7 @@
           "sets": 3,
           "rep_min": 12,
           "rep_max": 15,
-          "start_load": 7.5,
+          "start_load": "da definire",
           "step_kg": 2.5,
           "unit": "kg totali",
           "notes": ""
@@ -404,7 +402,7 @@
           "sets": 4,
           "rep_min": 10,
           "rep_max": 12,
-          "start_load": 15,
+          "start_load": "da definire",
           "step_kg": 2.5,
           "unit": "kg totali",
           "notes": "progressione sospesa fino al controllo dal fisioterapista (metà-fine novembre); sconsigliato con il dolore alla spalla: presa larga, gomiti non oltre le spalle; al primo fastidio toglilo",
@@ -418,7 +416,7 @@
           "sets": 3,
           "rep_min": 12,
           "rep_max": 15,
-          "start_load": 12.5,
+          "start_load": "da definire",
           "step_kg": 2.5,
           "unit": "kg totali",
           "notes": ""
@@ -431,7 +429,7 @@
           "sets": 3,
           "rep_min": 12,
           "rep_max": 15,
-          "start_load": 12.5,
+          "start_load": "da definire",
           "step_kg": 2.5,
           "unit": "kg totali",
           "notes": ""
@@ -450,7 +448,7 @@
           "sets": 3,
           "rep_min": 10,
           "rep_max": 12,
-          "start_load": 8,
+          "start_load": "da definire",
           "step_kg": 1,
           "unit": "kg per mano, totale in Hevy",
           "notes": "schiena neutra",
@@ -461,10 +459,10 @@
           "hevy_titles": [
             "Hip Thrust (macchina)"
           ],
-          "sets": 4,
+          "sets": 3,
           "rep_min": 10,
           "rep_max": 12,
-          "start_load": 40,
+          "start_load": "da definire",
           "step_kg": 5,
           "unit": "kg totali",
           "notes": "35 = sola macchina"
@@ -474,10 +472,10 @@
           "hevy_titles": [
             "Leg Curl Sdraiato (Macchina)"
           ],
-          "sets": 4,
+          "sets": 3,
           "rep_min": 12,
           "rep_max": 15,
-          "start_load": 12.5,
+          "start_load": "da definire",
           "step_kg": 2.5,
           "unit": "kg totali",
           "notes": "prima arrivi a 15"
@@ -490,11 +488,7 @@
           "sets": 3,
           "rep_min": 10,
           "rep_max": 12,
-          "start_load": [
-            7,
-            7,
-            9
-          ],
+          "start_load": "da definire",
           "step_kg": 1,
           "unit": "kg per mano, totale in Hevy",
           "notes": "",
@@ -509,7 +503,7 @@
           "sets": 3,
           "rep_min": 15,
           "rep_max": 15,
-          "start_load": 22.5,
+          "start_load": "da definire",
           "step_kg": 2.5,
           "unit": "kg totali",
           "notes": ""
@@ -522,7 +516,7 @@
           "sets": 3,
           "rep_min": 15,
           "rep_max": 15,
-          "start_load": 20,
+          "start_load": "da definire",
           "step_kg": 2.5,
           "unit": "kg totali",
           "notes": "prima arrivi a 15 su tutte"
