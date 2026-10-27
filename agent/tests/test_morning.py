@@ -188,51 +188,51 @@ class TestSuggest(unittest.TestCase):
         self.assertEqual(self.adv("Upper C", "Face Pull", [])["load"], morning.TARATURA)
         self.assertEqual(self.adv("Lower A", "Back Extension (Iperestensione)", [])["load"], "corpo libero")
 
-    def test_weeks_of_v17_cycle(self):
-        self.assertEqual(morning.phase(SCHEDA, D(2026, 10, 26)), "normal")          # S4 carichi
-        self.assertEqual(morning.phase(SCHEDA, D(2026, 11, 4)), "normal")           # S5 ripetizioni: step se matura
-        self.assertEqual(morning.phase(SCHEDA, D(2026, 11, 9)), "deload")           # S6 scarico
-        self.assertEqual(morning.phase(SCHEDA, D(2026, 11, 15)), "deload")
-        self.assertEqual(morning.phase(SCHEDA, D(2026, 11, 16)), "normal")          # S7 ripartenza
-        self.assertEqual(morning.phase(SCHEDA, D(2026, 11, 29)), "normal")          # S8 carichi
+    def test_weeks_of_cycle(self):
+        self.assertEqual(morning.phase(SCHEDA, D(2026, 10, 26)), "normal")          # prima dello scarico
+        self.assertEqual(morning.phase(SCHEDA, D(2026, 10, 27)), "deload")          # S4 scarico anticipato
+        self.assertEqual(morning.phase(SCHEDA, D(2026, 11, 2)), "deload")
+        self.assertEqual(morning.phase(SCHEDA, D(2026, 11, 3)), "normal")           # S5 ripresa
+        self.assertEqual(morning.phase(SCHEDA, D(2026, 11, 11)), "normal")          # vecchio scarico S6 tolto
+        self.assertEqual(morning.phase(SCHEDA, D(2026, 11, 29)), "normal")          # S8
         self.assertEqual(morning.phase(SCHEDA, D(2026, 11, 30)), "ended")
-        self.assertFalse(morning.in_deload(SCHEDA, D(2026, 10, 28)))                # vecchio scarico tolto
+
 
     def test_deload_week_minus_10_percent(self):
-        ws = [wk("2026-11-03T10:00:00Z", UPPER_B), wk("2026-11-05T10:00:00Z", UPPER_B)]
-        a = self.adv("Upper B", "Trazione verticale (macchina)", ws, today=D(2026, 11, 10))
+        ws = [wk("2026-10-20T10:00:00Z", UPPER_B), wk("2026-10-22T10:00:00Z", UPPER_B)]
+        a = self.adv("Upper B", "Trazione verticale (macchina)", ws, today=D(2026, 10, 28))
         self.assertEqual(a["load"], "22,5 kg")  # 25 x 0,9 = 22,5, nessuno step
         self.assertIn("scarico", a["goal"]); self.assertIn("RPE 6", a["goal"])
         self.assertIsNone(a["update"])
 
     def test_deload_sessions_excluded_from_base_and_last(self):
-        ws = [wk("2026-11-06T10:00:00Z", [("Trazione verticale (macchina)", [s(30, 11)] * 3)]),
-              wk("2026-11-10T10:00:00Z", [("Trazione verticale (macchina)", [s(27.5, 12)] * 3)])]   # scarico
-        a = self.adv("Upper B", "Trazione verticale (macchina)", ws, today=D(2026, 11, 17))
+        ws = [wk("2026-10-24T10:00:00Z", [("Trazione verticale (macchina)", [s(30, 11)] * 3)]),
+              wk("2026-10-28T10:00:00Z", [("Trazione verticale (macchina)", [s(27.5, 12)] * 3)])]   # scarico
+        a = self.adv("Upper B", "Trazione verticale (macchina)", ws, today=D(2026, 11, 4))
         self.assertEqual(a["load"], "30 kg")
-        self.assertIn("ultima volta 06/11", a["last"])
-        self.assertIn("scarico del 10/11 escluso", a["last"])
+        self.assertIn("ultima volta 24/10", a["last"])
+        self.assertIn("scarico del 28/10 escluso", a["last"])
 
     def test_no_step_when_a_deload_session_is_in_between(self):
         top = [("Trazione verticale (macchina)", [s(30, 12)] * 3)]
-        ws = [wk("2026-11-06T10:00:00Z", top),
-              wk("2026-11-11T10:00:00Z", [("Trazione verticale (macchina)", [s(27.5, 12)] * 3)]),   # scarico
-              wk("2026-11-17T10:00:00Z", top)]
-        a = self.adv("Upper B", "Trazione verticale (macchina)", ws, today=D(2026, 11, 18))
+        ws = [wk("2026-10-24T10:00:00Z", top),
+              wk("2026-10-29T10:00:00Z", [("Trazione verticale (macchina)", [s(27.5, 12)] * 3)]),   # scarico
+              wk("2026-11-04T10:00:00Z", top)]
+        a = self.adv("Upper B", "Trazione verticale (macchina)", ws, today=D(2026, 11, 5))
         self.assertEqual(a["load"], "30 kg")
         self.assertIsNone(a["update"])
         self.assertIn("al tetto", a["goal"])
         # due sedute valide consecutive dopo lo scarico: lo step scatta
-        ws.append(wk("2026-11-19T10:00:00Z", top))
-        a = self.adv("Upper B", "Trazione verticale (macchina)", ws, today=D(2026, 11, 20))
+        ws.append(wk("2026-11-06T10:00:00Z", top))
+        a = self.adv("Upper B", "Trazione verticale (macchina)", ws, today=D(2026, 11, 7))
         self.assertEqual(a["goal"], "STEP CONFERMATO: porta la routine a 32,5 kg")
 
     def test_deload_sessions_do_not_count_against(self):
         # una seduta di scarico sotto il tetto non annulla le due sedute valide prima
         top = [("Trazione verticale (macchina)", [s(30, 12)] * 3)]
-        ws = [wk("2026-11-03T10:00:00Z", top), wk("2026-11-05T10:00:00Z", top),
-              wk("2026-11-12T10:00:00Z", [("Trazione verticale (macchina)", [s(27.5, 8)] * 2)])]   # scarico
-        a = self.adv("Upper B", "Trazione verticale (macchina)", ws, today=D(2026, 11, 17))
+        ws = [wk("2026-10-20T10:00:00Z", top), wk("2026-10-22T10:00:00Z", top),
+              wk("2026-10-29T10:00:00Z", [("Trazione verticale (macchina)", [s(27.5, 8)] * 2)])]   # scarico
+        a = self.adv("Upper B", "Trazione verticale (macchina)", ws, today=D(2026, 11, 4))
         self.assertEqual(a["goal"], "STEP CONFERMATO: porta la routine a 32,5 kg")
 
     def test_cycle_ended_keeps_loads_without_progression(self):
@@ -242,18 +242,19 @@ class TestSuggest(unittest.TestCase):
         self.assertEqual(a["goal"], "mantieni 25 kg, nessuna progressione")
         self.assertIsNone(a["update"])
 
-    def test_step_can_fire_in_s4_s5_s8_never_in_s6(self):
-        ws = [wk("2026-10-27T10:00:00Z", UPPER_B), wk("2026-10-30T10:00:00Z", UPPER_B)]
-        for day in (D(2026, 10, 31), D(2026, 11, 4), D(2026, 11, 25)):        # S4, S5, S8
+    def test_step_can_fire_after_deload_never_during(self):
+        ws = [wk("2026-10-20T10:00:00Z", UPPER_B), wk("2026-10-23T10:00:00Z", UPPER_B)]
+        for day in (D(2026, 10, 26), D(2026, 11, 4), D(2026, 11, 11), D(2026, 11, 25)):   # prima, S5, S6, S8
             self.assertTrue(self.adv("Upper B", "Trazione verticale (macchina)", ws, today=day)["goal"].startswith("STEP CONFERMATO"))
-        a = self.adv("Upper B", "Trazione verticale (macchina)", ws, today=D(2026, 11, 10))  # S6
+        a = self.adv("Upper B", "Trazione verticale (macchina)", ws, today=D(2026, 10, 29))  # S4 scarico
         self.assertIn("scarico", a["goal"])
         self.assertIsNone(a["update"])
+
 
     def test_calf_raise_lower_a_bodyweight_no_step(self):
         bw = [("Calf Raise Seduto", [s(0, 15)] * 3)]
         ws = [wk("2026-10-05T10:00:00Z", bw), wk("2026-10-21T10:00:00Z", bw)]
-        a = self.adv("Lower A", "Calf Raise Seduto", ws, today=D(2026, 10, 27))
+        a = self.adv("Lower A", "Calf Raise Seduto", ws, today=D(2026, 11, 4))
         self.assertEqual(a["load"], "corpo libero")
         self.assertEqual(a["goal"], "mantieni corpo libero, al tetto")
         self.assertIsNone(a["update"])
@@ -284,7 +285,7 @@ class TestSuggest(unittest.TestCase):
     def test_upright_row_load_is_fixed(self):
         a15 = [("Rematore Verticale (Bilanciere)", [s(15, 12)] * 4)]
         ws = [wk("2026-10-16T10:00:00Z", a15), wk("2026-10-24T10:00:00Z", a15)]
-        a = self.adv("Upper C", "Rematore Verticale (Bilanciere)", ws, today=D(2026, 10, 27))
+        a = self.adv("Upper C", "Rematore Verticale (Bilanciere)", ws, today=D(2026, 11, 4))
         self.assertEqual(a["goal"], "mantieni 15 kg (progressione sospesa)")
         self.assertIsNone(a["update"])
 
@@ -354,12 +355,12 @@ class TestMessage(unittest.TestCase):
         self.assertNotIn("serve la nuova scheda", m)
 
     def test_deload_note(self):
-        m = self.msg([wk("2026-11-09T12:00:00Z", UPPER_A)], D(2026, 11, 10))
-        self.assertIn("Settimana S6 (09/11-15/11): Scarico.", m)
+        m = self.msg([wk("2026-10-26T12:00:00Z", UPPER_A)], D(2026, 10, 28))
+        self.assertIn("Settimana S4 (27/10-02/11): Scarico anticipato.", m)
         self.assertIn("Settimana di scarico: una serie in meno per esercizio e carichi -10% (arrotondati al gradino, almeno un gradino), RPE 6.", m)
         self.assertIn("Leg Press Orizzontale (Macchina) — 3x10-12 —", m)   # 4 serie meno una
         self.assertNotIn("Routine da aggiornare", m)  # durante lo scarico le routine non si toccano
-        self.assertNotIn("Settimana di scarico", self.msg([wk("2026-10-24T12:00:00Z", UPPER_A)], D(2026, 10, 28)))
+        self.assertNotIn("Settimana di scarico", self.msg([wk("2026-11-02T12:00:00Z", UPPER_A)], D(2026, 11, 4)))
 
     def test_upper_c_new_exercises(self):
         m = self.msg([wk("2026-09-01T10:00:00Z", UPPER_B)], D(2026, 9, 2))
@@ -408,42 +409,43 @@ class TestMessage(unittest.TestCase):
 
     def test_step_confirmed_in_footer(self):
         top = [("Trazione verticale (macchina)", [s(32.5, 12)] * 3)]
-        ws = [wk("2026-10-27T10:00:00Z", UPPER_C), wk("2026-10-28T10:00:00Z", LOWER_B + [("Abduzione Anche (Macchina)", [s(22.5, 15)] * 3)]),
-              wk("2026-10-29T10:00:00Z", UPPER_A), wk("2026-10-30T10:00:00Z", LOWER_A),
-              wk("2026-10-31T10:00:00Z", top), wk("2026-11-01T10:00:00Z", UPPER_C),
-              wk("2026-11-01T18:00:00Z", top)]
+        ws = [wk("2026-11-03T10:00:00Z", UPPER_C), wk("2026-11-04T10:00:00Z", LOWER_B + [("Abduzione Anche (Macchina)", [s(22.5, 15)] * 3)]),
+              wk("2026-11-05T10:00:00Z", UPPER_A), wk("2026-11-06T10:00:00Z", LOWER_A),
+              wk("2026-11-07T10:00:00Z", top), wk("2026-11-08T10:00:00Z", UPPER_C),
+              wk("2026-11-08T18:00:00Z", top)]
         cl = morning.classify(ws, SCHEDA)
-        lines, _, _, _ = morning.session_block("Upper B", cl, SCHEDA, D(2026, 11, 1), "normal")
+        lines, _, _, _ = morning.session_block("Upper B", cl, SCHEDA, D(2026, 11, 8), "normal")
         self.assertIn("— 35 kg (STEP CONFERMATO: porta la routine a 35 kg", lines[0])
 
     def test_footer_lists_routines_to_update(self):
         top = [("Trazione verticale (macchina)", [s(32.5, 12)] * 3)]
-        ws = [wk("2026-10-29T10:00:00Z", top), wk("2026-10-30T10:00:00Z", UPPER_A),
-              wk("2026-10-31T10:00:00Z", top)]
+        ws = [wk("2026-11-05T10:00:00Z", top), wk("2026-11-06T10:00:00Z", UPPER_A),
+              wk("2026-11-07T10:00:00Z", top)]
         # dopo l'ultimo Upper B la rotazione proporrebbe Upper C: forziamo Upper B con il blocco
         cl = morning.classify(ws, SCHEDA)
         extra = {}
-        morning.session_block("Upper B", cl, SCHEDA, D(2026, 11, 1), "normal", None, extra)
+        morning.session_block("Upper B", cl, SCHEDA, D(2026, 11, 8), "normal", None, extra)
         self.assertIn(("Trazione verticale (macchina)", "35 kg"), extra["updates"])
 
     def test_two_steps_in_the_same_session(self):
         # più esercizi con step confermato nella stessa seduta: tutti nell'elenco finale
         a = [("Trazione verticale (macchina)", [s(32.5, 12)] * 3), ("Curl Bicipiti (Manubrio)", [s(9, 12)] * 3),
              ("Bicipiti Martello (Cavo)", [s(12.5, 12)] * 3)]
-        ws = [wk("2026-10-27T10:00:00Z", UPPER_A), wk("2026-10-28T10:00:00Z", a),
-              wk("2026-10-30T10:00:00Z", a), wk("2026-10-31T10:00:00Z", LOWER_B)]
+        ws = [wk("2026-11-03T10:00:00Z", UPPER_A), wk("2026-11-04T10:00:00Z", a),
+              wk("2026-11-06T10:00:00Z", a), wk("2026-11-07T10:00:00Z", LOWER_B)]
         cl = morning.classify(ws, SCHEDA)
         extra = {}
-        lines, _, _, _ = morning.session_block("Upper B", cl, SCHEDA, D(2026, 11, 1), "normal", None, extra)
+        lines, _, _, _ = morning.session_block("Upper B", cl, SCHEDA, D(2026, 11, 8), "normal", None, extra)
         self.assertEqual([n for n, _v in extra["updates"]],
                          ["Trazione verticale (macchina)", "Curl Bicipiti (Manubrio)", "Bicipiti Martello (Cavo)"])
         self.assertEqual(dict(extra["updates"])["Curl Bicipiti (Manubrio)"], "10 kg")
 
-    def test_tbar_note_from_november_2(self):
-        ws = [wk("2026-10-30T10:00:00Z", LOWER_A)]
-        self.assertNotIn("T-Bar Row", self.msg(ws, D(2026, 11, 1)))
-        ws = [wk("2026-11-01T10:00:00Z", LOWER_A)]
-        self.assertIn("T-Bar Row 3 x 10-12 a 10 kg", self.msg(ws, D(2026, 11, 2)))
+    def test_tbar_note_from_november_3(self):
+        ws = [wk("2026-10-31T10:00:00Z", LOWER_A)]
+        self.assertNotIn("T-Bar Row", self.msg(ws, D(2026, 11, 2)))
+        ws = [wk("2026-11-02T10:00:00Z", LOWER_A)]
+        self.assertIn("T-Bar Row 3 x 10-12 al posto del Rematore al Cavo da Seduto - Presa Larga", self.msg(ws, D(2026, 11, 3)))
+
 
     def test_implicit_warmup_note_in_message(self):
         ws = [wk("2026-10-20T10:00:00Z", [("Chest Press (Macchina)", [s(10, 12), s(20, 12), s(20, 12), s(20, 12)])]),

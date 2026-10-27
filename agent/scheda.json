@@ -1,7 +1,7 @@
 {
   "version": "v18",
   "version_id": "20261025-2348",
-  "version_rule": "v18: la scheda definisce esercizi, serie, range e regole; i carichi li decide Hevy (routine + allenamenti registrati). Nessun carico di partenza in scheda.",
+  "version_rule": "v18: la scheda definisce esercizi, serie, range e regole; i carichi li decide Hevy (routine + allenamenti registrati). Nessun carico di partenza in scheda. Aggiornamento 27/10: scarico anticipato al 27/10-02/11, poi settimane normali fino al 29/11.",
   "timezone": "Europe/Rome",
   "rotation": [
     "Upper A",
@@ -26,37 +26,37 @@
     "weeks": [
       {
         "code": "S4",
-        "start": "2026-10-26",
-        "end": "2026-11-01",
-        "focus": "Carichi",
-        "type": "normal"
-      },
-      {
-        "code": "S5",
-        "start": "2026-11-02",
-        "end": "2026-11-08",
-        "focus": "Ripetizioni: +1-2 ripetizioni per serie fino al tetto (lo step scatta appena matura)",
-        "type": "normal"
-      },
-      {
-        "code": "S6",
-        "start": "2026-11-09",
-        "end": "2026-11-15",
-        "focus": "Scarico",
+        "start": "2026-10-27",
+        "end": "2026-11-02",
+        "focus": "Scarico anticipato",
         "type": "deload"
       },
       {
-        "code": "S7",
-        "start": "2026-11-16",
-        "end": "2026-11-22",
+        "code": "S5",
+        "start": "2026-11-03",
+        "end": "2026-11-09",
         "focus": "Ripresa: torna il numero di serie normale, carichi di prima dello scarico",
         "type": "normal"
       },
       {
+        "code": "S6",
+        "start": "2026-11-10",
+        "end": "2026-11-16",
+        "focus": "Progressione: lo step scatta appena matura",
+        "type": "normal"
+      },
+      {
+        "code": "S7",
+        "start": "2026-11-17",
+        "end": "2026-11-23",
+        "focus": "Progressione: lo step scatta appena matura",
+        "type": "normal"
+      },
+      {
         "code": "S8",
-        "start": "2026-11-23",
+        "start": "2026-11-24",
         "end": "2026-11-29",
-        "focus": "Carichi: +1 gradino dove maturato",
+        "focus": "Progressione: lo step scatta appena matura; dal 30/11 nuova scheda",
         "type": "normal"
       }
     ]
@@ -239,8 +239,8 @@
       "duration": "circa 65-70 min",
       "reminders": [
         {
-          "from": "2026-11-02",
-          "text": "Dal 02/11, se la spalla non dà fastidio: T-Bar Row 3 x 10-12 a 10 kg al posto del Rematore al Cavo da Seduto - Presa Larga."
+          "from": "2026-11-03",
+          "text": "Dal 03/11, se la spalla è ok: T-Bar Row 3 x 10-12 al posto del Rematore al Cavo da Seduto - Presa Larga."
         }
       ],
       "legacy_titles": [
